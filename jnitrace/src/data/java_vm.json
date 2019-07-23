@@ -1,0 +1,58 @@
+[
+    {
+        "name": "reserved0",
+        "args": [],
+        "ret": null
+    },
+    {
+        "name": "reserved1",
+        "args": [],
+        "ret": null
+    },
+    {
+        "name": "reserved2",
+        "args": [],
+        "ret": null
+    },
+    {
+        "name": "DestroyJavaVM",
+        "args": [
+            "JavaVM*"
+        ],
+        "ret": "jint"
+    },
+    {
+        "name": "AttachCurrentThread",
+        "args": [
+            "JavaVM*",
+            "void**",
+            "void*"
+        ],
+        "ret": "jint"
+    },
+    {
+        "name": "DetachCurrentThread",
+        "args": [
+            "JavaVM*"
+        ],
+        "ret": "jint"
+    },
+    {
+        "name": "GetEnv",
+        "args": [
+            "JavaVM*",
+            "void**",
+            "jint"
+        ],
+        "ret": "jint"
+    },
+    {
+        "name": "AttachCurrentThreadAsDaemon",
+        "args": [
+            "JavaVM*",
+            "void**",
+            "void*"
+        ],
+        "ret": "jint"
+    },
+]
