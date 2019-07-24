@@ -41,6 +41,14 @@ Backtracer.
 additional data for the method arguments. This will include buffers passed to
 a function or strings.
 
+***Note***
+
+Remember frida-server must be running before running `jnitrace`. If the default
+instructions for installing frida have been followed, the following command will start the server ready for `jnitrace`:
+
+`adb shell /data/local/tmp/frida-server`
+
+
 ## Building:
 
 Building `jnitrace` from source requires that `node` first be installed.
