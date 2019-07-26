@@ -54,9 +54,9 @@ instructions for installing frida have been followed, the following command will
 Building `jnitrace` from source requires that `node` first be installed.
 After installing `node`, the following commands need to be run:
 
-* npm install frida-compile
-* cd /path/to/jnitrace/src
-* frida-compile main.js -o ../build/jnitrace.js -w
+* `npm install frida-compile`
+* `cd /path/to/jnitrace/src`
+* `frida-compile main.js -o ../build/jnitrace.js -w`
 
 `frida-compile` will run in the background compiling the source to the output
 file, `jnitrace.js`. By using the `-w` command with `frida-compile`, any

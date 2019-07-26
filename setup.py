@@ -15,7 +15,7 @@ setup(
     url='https://github.com/chame1eon/jnitrace',
     author='chame1eon',
     classifiers=[
-        'Development Status :: 5 - Stable',
+        'Development Status :: 5 - Production/Stable',
 
         'Intended Audience :: Developers',
 
