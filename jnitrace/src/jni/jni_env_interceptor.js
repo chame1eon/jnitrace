@@ -77,7 +77,6 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
 
         Interceptor.attach(addr, {
           onEnter: function(args) {
-            console.log("running!");
             if (!self.threads.hasJNIEnv(this.threadId)) {
               self.threads.setJNIEnv(this.threadId, ptr(args[0]));
             }
