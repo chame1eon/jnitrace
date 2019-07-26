@@ -68,6 +68,23 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
       fridaTypes.ret = Types.convertNativeJTypeToFridaType(jTypeRet);
 
       self.methods[ret] = fridaTypes;
+    } else if (method.name === "RegisterNatives") {
+      var methods = localArgs[2];
+      var size = localArgs[3];
+      for (var i = 0; i < size * 3; i += 3) {
+        var offset = (i + 2) * Process.pointerSize;
+        var addr = Memory.readPointer(methods.add(offset));
+
+        Interceptor.attach(addr, {
+          onEnter: function(args) {
+            console.log("running!");
+            if (!self.threads.hasJNIEnv(this.threadId)) {
+              self.threads.setJNIEnv(this.threadId, ptr(args[0]));
+            }
+            args[0] = ptr(self.shadowJNIEnv);
+          }
+        });
+      }
     }
 
     return ret;

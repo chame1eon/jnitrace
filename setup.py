@@ -8,14 +8,14 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='jnitrace',
-    version='1.0.3',
+    version='1.1.3',
     description='A tool for tracing use of the JNI in Android apps',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/pypa/sampleproject',  # TODO
+    url='https://github.com/chame1eon/jnitrace',
     author='chame1eon',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Stable',
 
         'Intended Audience :: Developers',
 
@@ -47,6 +47,6 @@ setup(
         ],
     },
     project_urls={
-        'Bug Reports': 'https://github.com/pypa/sampleproject/issues', #TODO
+        'Bug Reports': 'https://github.com/chame1eon/jnitrace/issues',
     },
 )
