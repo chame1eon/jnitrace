@@ -7,6 +7,7 @@ var TraceTransport = require("./transport/trace_transport");
 var JNIEnvInterceptorX86 = require("./jni/x86/jni_env_interceptor_x86");
 var JNIEnvInterceptorX64 = require("./jni/x64/jni_env_interceptor_x64");
 var JNIEnvInterceptorARM = require("./jni/arm/jni_env_interceptor_arm");
+var JNIEnvInterceptorARM64 = require("./jni/arm64/jni_env_interceptor_arm64");
 
 var JavaVMInterceptor = require("./jni/java_vm_interceptor");
 
@@ -22,6 +23,8 @@ if (Process.arch === "ia32") {
   jniEnvInterceptor = new JNIEnvInterceptorX64(references, threads, transport);
 } else if (Process.arch === "arm") {
   jniEnvInterceptor = new JNIEnvInterceptorARM(references, threads, transport);
+} else if (Process.arch === "arm64") {
+  jniEnvInterceptor = new JNIEnvInterceptorARM64(references, threads, transport);
 }
 
 if (!jniEnvInterceptor) {
@@ -38,6 +41,7 @@ var javaVMInterceptor = new JavaVMInterceptor(
 
 var libsToTrack = ['*'];
 var trackedLibs = {};
+var libBlacklist = {};
 
 
 // need to run this before start up.
@@ -107,38 +111,49 @@ var dlsymRef = Module.findExportByName(null, "dlsym");
 var dlcloseRef = Module.findExportByName(null, "dlclose");
 
 if (dlopenRef && dlsymRef && dlcloseRef) {
-  var dlopen = new NativeFunction(dlopenRef, "pointer", ["pointer", "int"]);
-  Interceptor.attach(dlopen, {
-    onEnter: function(args) {
-      var path = Memory.readCString(args[0]);
+  var dlopen = new NativeFunction(dlopenRef, 'pointer', ['pointer', 'int']);
+  Interceptor.replace(dlopen, new NativeCallback(function(filename, mode) {
+      var path = Memory.readCString(filename);
+      var retval = dlopen(filename, mode);
+
       if (checkLibrary(path)) {
-        this.addHandle = true;
-      }
-    },
-    onLeave: function(retval) {
-      if (this.addHandle) {
         trackedLibs[ptr(retval)] = true;
+      } else {
+        libBlacklist[ptr(retval)] = true;
       }
-    }
-  });
+      return retval;
+  }, 'pointer', ['pointer', 'int']));
 
   var dlsym = new NativeFunction(dlsymRef, "pointer", ["pointer", "pointer"]);
   Interceptor.attach(dlsym, {
     onEnter: function(args) {
       this.handle = ptr(args[0]);
-      if (trackedLibs[args[0]]) {
-        this.symbol = Memory.readCString(args[1]);
-      }
-    },
-    onLeave: function(retval) {
-      if (retval.isNull()) {
+
+      if (libBlacklist[this.handle]) {
         return;
       }
 
+      this.symbolAddr = ptr(args[1]);
+    },
+    onLeave: function(retval) {
+      if (retval.isNull() || libBlacklist[this.handle]) {
+        return;
+      }
+
+      if (!trackedLibs[this.handle]) {
+        // Android 7 and above miss the initial dlopen call.
+        // Give it another chance in dlsym.
+        var mod = Process.findModuleByAddress(retval);
+        if (checkLibrary(mod.name)) {
+          trackedLibs[this.handle] = true;
+        }
+      }
+
       if (trackedLibs[this.handle]) {
-        if (this.symbol === "JNI_OnLoad") {
+        var symbol = Memory.readCString(this.symbolAddr);
+        if (symbol === "JNI_OnLoad") {
           interceptJNIOnLoad(ptr(retval));
-        } else if (this.symbol.startsWith("Java_")) {
+        } else if (symbol.startsWith("Java_")) {
           interceptJNIFunction(ptr(retval));
         }
       } else {

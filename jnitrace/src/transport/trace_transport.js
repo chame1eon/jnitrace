@@ -5,10 +5,8 @@ function TraceTransport(threads) {
   this.start = Date.now();
 }
 
-// GetJavaVM needs to be overriden to return custom VM
 // add - additional method data - will include jtypes for va_list and ...
 TraceTransport.prototype.trace = function(method, args, ret, context, add) {
-  //console.log(method.name, JSON.stringify(args), ret);
   var threadId = Process.getCurrentThreadId();
   var outputArgs = [];
   var outputRet = NULL;
@@ -192,14 +190,20 @@ TraceTransport.prototype.trace = function(method, args, ret, context, add) {
 
   outputRet = ret;
 
-  var bt = Thread.backtrace(context, Backtracer.FUZZY);
   var backtrace = [];
 
-  for (var i = 0; i < bt.length; i++) {
-    backtrace.push({
-      address: bt[i],
-      module: Process.findModuleByAddress(bt[i])
-    })
+  // verify that a backtrace is possible.
+  // sometimes the NativeCallback provides erroneous CpuContexts
+  if (Process.findModuleByAddress(context.pc) &&
+        Process.findModuleByAddress(context.sp)) {
+    var bt = Thread.backtrace(context, Backtracer.FUZZY);
+
+    for (var i = 0; i < bt.length; i++) {
+      backtrace.push({
+        address: bt[i],
+        module: Process.findModuleByAddress(bt[i])
+      })
+    }
   }
 
   send({

@@ -1,6 +1,6 @@
 # jnitrace
 
-_A Frida module to trace usage of the JNI API in Android apps._
+_A Frida module to trace use of the JNI API in Android apps._
 
 Native libraries contained within Android Apps often make use of the JNI API to
 utilize the Android Runtime. Tracking those calls through
@@ -135,10 +135,6 @@ Most testing of this tool has been done on an Android x86_64 emulator running
 Marshmallow. Any issues experienced running on another device, please file an
 issue, but also, if possible, it is recommended to try running on a similar
 emulator.
-
-## Future:
-* Architecture support for arm64 platforms
-* Develop to work with JVM as well as Android
 
 ## Issues:
 For any issues experienced running `jnitrace` please create an issue on

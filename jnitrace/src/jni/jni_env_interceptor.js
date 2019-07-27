@@ -89,9 +89,6 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
     return ret;
   }, fridaRet, fridaArgs);
 
-  // prevent crash on x86_64
-  Interceptor.attach(nativeCallback, { onEnter: function () {} });
-
   this.references.add(nativeCallback);
 
   return nativeCallback;
@@ -165,6 +162,7 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
       self.references.add(mainCallback);
 
       self.fastMethodLookup[methodId] = mainCallback;
+
       return mainCallback;
     }, "pointer", ["pointer", "pointer", "pointer"]);
 
@@ -303,7 +301,7 @@ JNIEnvInterceptor.prototype.create = function() {
     if (method.args[method.args.length - 1] === "...") {
       var callback = this.createJNIVarArgIntercept(i, methodAddr);
       Memory.writePointer(newJNIEnvStruct.add(offset), callback);
-    } else if(method.args[method.args.length - 1] === "va_list") {
+    } else if (method.args[method.args.length - 1] === "va_list") {
       var callback = this.createJNIVaListIntercept(i, methodAddr);
       Memory.writePointer(newJNIEnvStruct.add(offset), callback);
     } else {

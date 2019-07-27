@@ -55,7 +55,7 @@ JNIEnvInterceptorARM.prototype.buildVaArgParserShellcode =
       cw.flush();
     });
 
-    // required for some reason...
+    // required to prevent a crash
     Interceptor.attach(text.add(56), function() {});
   }
 

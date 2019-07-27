@@ -54,13 +54,13 @@ class Formatter: # pylint: disable=too-few-public-methods
         return color
 
     def _update_refs(self, method, args, ret):
-        if method["name"] in ["GetMethodID", "Get_staticMethodID"]:
+        if method["name"] in ["GetMethodID", "GetStaticMethodID"]:
             method_id = ret
             self._jmethods[method_id] = {
                 "name": args[2]["data"],
                 "sig": args[3]["data"]
             }
-        elif method["name"] in ["GetFieldID", "Get_staticFieldID"]:
+        elif method["name"] in ["GetFieldID", "GetStaticFieldID"]:
             field_id = ret
             self._jfields[field_id] = {
                 "name": args[2]["data"],
@@ -199,7 +199,11 @@ class Formatter: # pylint: disable=too-few-public-methods
         :param data - binary data for some JNI method calls
         """
         if message["type"] != "send":
-            print("{}ERROR: {}".format(Fore.RED, str(message)))
+            print("{}ERROR: {}{}".format(
+                Fore.RED,
+                str(message),
+                Style.RESET_ALL
+            ))
             return
 
         payload = message["payload"]
