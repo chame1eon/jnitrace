@@ -17,7 +17,8 @@ The easiest way to get running with `jnitrace` is to install using pip:
 `pip install jnitrace`
 
 ###### Dependencies:
-* arm, x86, x64 Android device
+* pip for python 3
+* arm, arm64, x86, x64 Android device
 * Frida installed on the Android device
 * Frida support > 12
 * Linux, Mac, or Windows Host with Python and pip
