@@ -1,0 +1,5 @@
+frida>=10.0.0
+colorama
+hexdump
+
+pylint
