@@ -39,6 +39,8 @@ var javaVMInterceptor = new JavaVMInterceptor(
                               jniEnvInterceptor
                             );
 
+jniEnvInterceptor.setJavaVMInterceptor(javaVMInterceptor);
+
 var libsToTrack = ['*'];
 var trackedLibs = {};
 var libBlacklist = {};

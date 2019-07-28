@@ -6,6 +6,8 @@ function JNIEnvInterceptor(references, threads, transport) {
   this.references = references;
   this.threads = threads;
   this.transport = transport;
+
+  this.javaVMInterceptor = NULL;
 }
 
 JNIEnvInterceptor.prototype.shadowJNIEnv = null;
@@ -43,7 +45,24 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
 
     var ret = nativeFunction.apply(null, localArgs);
 
-    self.transport.trace(method, localArgs, ret, this.context);
+    var add = null;
+
+    if (method.args[method.args.length - 1] === "jvalue*") {
+      add = self.methods[ptr(localArgs[2])].javaParams;
+      var jvalues = ptr(localArgs[method.args.length - 1]);
+      localArgs = localArgs.slice(0, -1);
+
+      for (var i = 0; i < add.length; i++) {
+        var val = NULL;
+        var type = Types.convertNativeJTypeToFridaType(add[i]);
+
+        var val = self.readValue(jvalues.add(8 * i), type);
+
+        localArgs.push(val);
+      }
+    }
+
+    self.transport.trace(method, localArgs, ret, this.context, add);
 
     if (method.name === "GetMethodID" ||
         method.name === "GetStaticMethodID") {
@@ -68,6 +87,20 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
       fridaTypes.ret = Types.convertNativeJTypeToFridaType(jTypeRet);
 
       self.methods[ret] = fridaTypes;
+    } else if (method.name === "GetJavaVM") {
+      var javaVM = NULL;
+
+      if (ret === 0) {
+        self.threads.setJavaVM(Memory.readPointer(localArgs[1]));
+      }
+
+      if (!self.javaVMInterceptor.isInitialised()) {
+        javaVM = self.javaVMInterceptor.create();
+      } else {
+        javaVM = self.javaVMInterceptor.get();
+      }
+
+      Memory.writePointer(localArgs[1], javaVM);
     } else if (method.name === "RegisterNatives") {
       var methods = localArgs[2];
       var size = localArgs[3];
@@ -213,26 +246,10 @@ JNIEnvInterceptor.prototype.createJNIVaListIntercept =
           self.setUpVaListArgExtract(vaList);
 
           for (var i = 0; i < method.params.length; i++) {
-            var val = NULL;
             var currentPtr = self.extractVaListArgValue(method, i);
 
-            if (method.params[i] === "char") {
-              val = Memory.readS8(currentPtr);
-            } else if (method.params[i] === "int16") {
-              val = Memory.readS16(currentPtr);
-            } else if (method.params[i] === "uint16") {
-              val = Memory.readU16(currentPtr);
-            } else if (method.params[i] === "int") {
-              val = Memory.readS32(currentPtr);
-            } else if (method.params[i] === "int64") {
-              val = Memory.readS64(currentPtr);
-            } else if (method.params[i] === "float") {
-              val = Memory.readDouble(currentPtr);
-            } else if (method.params[i] === "double") {
-              val = Memory.readDouble(currentPtr);
-            }
+            var val = self.readValue(currentPtr, method.params[i], true);
 
-            //TODO - needs to use jtype
             this.args.push(val);
           }
 
@@ -278,6 +295,38 @@ JNIEnvInterceptor.prototype.createJNIVaListIntercept =
 
     return methodAddr;
   }
+
+JNIEnvInterceptor.prototype.readValue = function(currentPtr, type, extend) {
+  var val = NULL;
+
+  if (type === "char") {
+    val = Memory.readS8(currentPtr);
+  } else if (type === "int16") {
+    val = Memory.readS16(currentPtr);
+  } else if (type === "uint16") {
+    val = Memory.readU16(currentPtr);
+  } else if (type === "int") {
+    val = Memory.readS32(currentPtr);
+  } else if (type === "int64") {
+    val = Memory.readS64(currentPtr);
+  } else if (type === "float") {
+    if (extend) {
+      val = Memory.readDouble(currentPtr);
+    } else {
+      val = Memory.readFloat(currentPtr);
+    }
+  } else if (type === "double") {
+    val = Memory.readDouble(currentPtr);
+  } else if (type === "pointer") {
+    val = Memory.readPointer(currentPtr);
+  }
+
+  return val;
+}
+
+JNIEnvInterceptor.prototype.setJavaVMInterceptor = function(javaVMInterceptor) {
+  this.javaVMInterceptor = javaVMInterceptor;
+}
 
 JNIEnvInterceptor.prototype.create = function() {
   var threadId = Process.getCurrentThreadId();

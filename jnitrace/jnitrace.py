@@ -9,9 +9,12 @@ import frida
 import hexdump
 
 from pkg_resources import resource_string
+from pkg_resources import require
 
 from colorama import Fore, Style, init
 
+
+__version__ = require("jnitrace")[0].version
 
 init()
 
@@ -224,7 +227,7 @@ class Formatter: # pylint: disable=too-few-public-methods
 
         for i, _ in enumerate(jni_args):
             arg_type = method["args"][i]
-            if arg_type in ["va_list", "..."]:
+            if arg_type in ["va_list", "...", "jvalue*"]:
                 add_java_args = True
                 break
 
@@ -285,6 +288,9 @@ def _parse_args():
                         help="Print contents of argument.")
     parser.add_argument("-p", "--process", required=True,
                         help="The name of the process to trace.")
+    parser.add_argument("-v", "--version", action='version',
+                        version="%(prog)s " + __version__,
+                        help="Show the installed version of jnitrace.")
     return parser.parse_args()
 
 def main():
