@@ -1,5 +1,11 @@
 # jnitrace Change Log
 
+## 1.3.2
+- Bug fix - Use Process.findRangeByAddress instead of Process.findModuleByAddress for checking the validity of the stack pointer
+
+## 1.3.1
+- Travis integration
+
 ## 1.3.0
 - Added a command argument to get the version of jnitrace
 - jnitrace now intercepts calls to GetJavaVM, returning a shadowJavaVM
