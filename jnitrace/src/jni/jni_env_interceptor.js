@@ -37,9 +37,13 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
 
   var nativeFunction = new NativeFunction(methodAddr, fridaRet, fridaArgs);
   var nativeCallback = new NativeCallback(function() {
-    var threadId = this.threadId;
+    var threadId = Process.getCurrentThreadId();
     var localArgs = [].slice.call(arguments);
     var jniEnv = self.threads.getJNIEnv(threadId);
+    var context = null;
+    if (this) {
+      context = this.context;
+    }
 
     localArgs[0] = jniEnv;
 
@@ -62,7 +66,7 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
       }
     }
 
-    self.transport.trace(method, localArgs, ret, this.context, add);
+    self.transport.trace(method, localArgs, ret, context, add);
 
     if (method.name === "GetMethodID" ||
         method.name === "GetStaticMethodID") {
