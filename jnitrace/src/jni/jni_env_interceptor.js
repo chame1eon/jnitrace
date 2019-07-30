@@ -63,9 +63,14 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
     }
 
     self.transport.trace(method, localArgs, ret, this.context, add);
+    console.log(method.name);
+    if (method.name.indexOf("ByteArray") > -1) {
+      console.log("BYTEARRAY", method.name, ret);
+    }
 
     if (method.name === "GetMethodID" ||
         method.name === "GetStaticMethodID") {
+      console.log(ret, Memory.readCString(localArgs[2]) + Memory.readCString(localArgs[3]));
       var signature = Memory.readCString(localArgs[3]);
       var types = new JavaMethod(signature);
       var fridaTypes = {
@@ -73,20 +78,22 @@ JNIEnvInterceptor.prototype.createJNIIntercept = function(id, methodAddr) {
         javaParams: [],
         ret: NULL
       };
-
+      console.log("stage 2");
       for (var i = 0; i < types.params.length; i++) {
         var nativeJType = Types.convertJTypeToNativeJType(types.params[i]);
         var fridaType = Types.convertNativeJTypeToFridaType(nativeJType);
+
         fridaTypes.params.push(fridaType);
         fridaTypes.javaParams.push(
           Types.convertJTypeToNativeJType(types.params[i])
         );
       }
-
+      console.log("stage 3");
       var jTypeRet = Types.convertJTypeToNativeJType(types.ret);
       fridaTypes.ret = Types.convertNativeJTypeToFridaType(jTypeRet);
 
       self.methods[ret] = fridaTypes;
+      console.log(JSON.stringify(self.methods));
     } else if (method.name === "GetJavaVM") {
       var javaVM = NULL;
 
@@ -146,13 +153,14 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
       var originalParams = [];
       var methodId = arguments[2];
       var vaArgs = self.methods[methodId];
-
+      console.log("va args", [].slice.call(arguments));
       if (self.fastMethodLookup[methodId]) {
         return self.fastMethodLookup[methodId];
       }
 
       for (var i = 0; i < method.args.length - 1; i++) {
         var fridaType = Types.convertNativeJTypeToFridaType(method.args[i]);
+        console.log(method.args[i], fridaType);
 
         callbackParams.push(fridaType);
         originalParams.push(fridaType);
@@ -161,6 +169,7 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
       originalParams.push("...");
 
       for (var i = 0; i < vaArgs.params.length; i++) {
+        console.log(methodId, vaArgs.params[i]);
         if (vaArgs.params[i] === "float") {
           callbackParams.push("double");
         } else {
@@ -171,12 +180,16 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
       }
 
       var retType = Types.convertNativeJTypeToFridaType(method.ret);
-
+      console.log(retType, callbackParams, callbackParams.length);
       mainCallback = new NativeCallback(function() {
         var threadId = this.threadId;
         var localArgs = [].slice.call(arguments);
         var jniEnv = self.threads.getJNIEnv(threadId);
-
+        console.log(originalParams);
+        console.log(localArgs);
+        console.log(self.threads.hasJNIEnv(threadId));
+        console.log(JSON.stringify(this.context));
+        console.log(Memory.readByteArray(this.context.sp.sub(128), 256));
         localArgs[0] = jniEnv;
 
         var ret = new NativeFunction(methodAddr,
@@ -349,13 +362,21 @@ JNIEnvInterceptor.prototype.create = function() {
 
     if (method.args[method.args.length - 1] === "...") {
       var callback = this.createJNIVarArgIntercept(i, methodAddr);
+      var trampoline = new NativeCallback(function() {}, 'void', ['pointer','pointer','pointer','pointer']);
+      this.references.add(trampoline);
+      // ensure the CpuContext will be populated
+      Interceptor.replace(trampoline, callback);
       Memory.writePointer(newJNIEnvStruct.add(offset), callback);
     } else if (method.args[method.args.length - 1] === "va_list") {
       var callback = this.createJNIVaListIntercept(i, methodAddr);
-      Memory.writePointer(newJNIEnvStruct.add(offset), callback);
+      Memory.writePointer(newJNIEnvStruct.add(offset), trampoline);
     } else {
       var callback = this.createJNIIntercept(i, methodAddr);
-      Memory.writePointer(newJNIEnvStruct.add(offset), callback);
+      var trampoline = new NativeCallback(function() {}, 'void', ['pointer','pointer','pointer','pointer']);
+      this.references.add(trampoline);
+      // ensure the CpuContext will be populated
+      Interceptor.replace(trampoline, callback);
+      Memory.writePointer(newJNIEnvStruct.add(offset), trampoline);
     }
   }
 

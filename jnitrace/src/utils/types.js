@@ -75,9 +75,15 @@ Types.convertNativeJTypeToFridaType = function(jtype) {
   return jtype;
 };
 
-Types.convertJTypeToNativeJType = function(jtype, isArray) {
+Types.convertJTypeToNativeJType = function(jtype) {
   var primitiveTypes = ["B", "S", "I", "J", "F", "D", "C", "Z"];
   var result = "";
+  var isArray = false;
+
+  if (jtype.startsWith("[")) {
+    isArray = true;
+    jtype = jtype.substring(1);
+  }
 
   if (jtype === "B") {
     result += "jbyte";

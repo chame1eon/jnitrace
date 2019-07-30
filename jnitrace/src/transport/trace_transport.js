@@ -192,18 +192,13 @@ TraceTransport.prototype.trace = function(method, args, ret, context, add) {
 
   var backtrace = [];
 
-  // verify that a backtrace is possible.
-  // sometimes the NativeCallback provides erroneous CpuContexts
-  if (Process.findModuleByAddress(context.pc) &&
-        Process.findRangeByAddress(context.sp)) {
-    var bt = Thread.backtrace(context, Backtracer.FUZZY);
+  var bt = Thread.backtrace(context, Backtracer.FUZZY);
 
-    for (var i = 0; i < bt.length; i++) {
-      backtrace.push({
-        address: bt[i],
-        module: Process.findModuleByAddress(bt[i])
-      })
-    }
+  for (var i = 0; i < bt.length; i++) {
+    backtrace.push({
+      address: bt[i],
+      module: Process.findModuleByAddress(bt[i])
+    })
   }
 
   send({
