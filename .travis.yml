@@ -6,8 +6,8 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install .
-  - nvm install node
-  - npm install -g frida-compile
+  - nvm install 12.7.0
+  - npm install -g frida-compile@8.0.4
 
 before_script:
   - cd jnitrace
