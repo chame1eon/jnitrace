@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 1.3.3
+- Bug fix - Checked whether the this context exists before using it
+
 ## 1.3.2
 - Bug fix - Use Process.findRangeByAddress instead of Process.findModuleByAddress for checking the validity of the stack pointer
 
