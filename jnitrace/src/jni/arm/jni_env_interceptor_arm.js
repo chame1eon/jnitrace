@@ -12,6 +12,20 @@ function JNIEnvInterceptorARM(references, threads, transport) {
 
 JNIEnvInterceptorARM.prototype = new JNIEnvInterceptor();
 
+JNIEnvInterceptorARM.prototype.createStubFunction = function() {
+  var stub = Memory.alloc(Process.pageSize);
+
+  Memory.patchCode(stub, Process.pageSize, function(code) {
+    var cw = new ArmWriter(code, { pc: stub });
+
+    cw.putInstruction(0xe52de004);
+    cw.putInstruction(0xe49df004);
+
+  });
+
+  return stub;
+}
+
 JNIEnvInterceptorARM.prototype.buildVaArgParserShellcode =
   function(text, data, parser) {
     Memory.writePointer(text.add(0x400), parser);
@@ -55,7 +69,7 @@ JNIEnvInterceptorARM.prototype.buildVaArgParserShellcode =
       cw.flush();
     });
 
-    // required to prevent a crash
+    // required to prevent a crash on arm
     Interceptor.attach(text.add(56), function() {});
   }
 

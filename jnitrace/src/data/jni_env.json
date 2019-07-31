@@ -1753,7 +1753,7 @@
             "jbooleanArray",
             "jboolean*"
         ],
-        "ret": "jboolean"
+        "ret": "jboolean*"
     },
     {
         "name": "GetByteArrayElements",
@@ -1762,7 +1762,7 @@
             "jbyteArray",
             "jboolean*"
         ],
-        "ret": "jbyte"
+        "ret": "jbyte*"
     },
     {
         "name": "GetCharArrayElements",
@@ -1771,7 +1771,7 @@
             "jcharArray",
             "jboolean*"
         ],
-        "ret": "jchar"
+        "ret": "jchar*"
     },
     {
         "name": "GetShortArrayElements",
@@ -1780,7 +1780,7 @@
             "jshortArray",
             "jboolean*"
         ],
-        "ret": "jshort"
+        "ret": "jshort*"
     },
     {
         "name": "GetIntArrayElements",
@@ -1789,7 +1789,7 @@
             "jintArray",
             "jboolean*"
         ],
-        "ret": "jint"
+        "ret": "jint*"
     },
     {
         "name": "GetLongArrayElements",
@@ -1798,7 +1798,7 @@
             "jlongArray",
             "jboolean*"
         ],
-        "ret": "jlong"
+        "ret": "jlong*"
     },
     {
         "name": "GetFloatArrayElements",
@@ -1807,7 +1807,7 @@
             "jfloatArray",
             "jboolean*"
         ],
-        "ret": "jfloat"
+        "ret": "jfloat*"
     },
     {
         "name": "GetDoubleArrayElements",
@@ -1816,7 +1816,7 @@
             "jdoubleArray",
             "jboolean*"
         ],
-        "ret": "jdouble"
+        "ret": "jdouble*"
     },
     {
         "name": "ReleaseBooleanArrayElements",

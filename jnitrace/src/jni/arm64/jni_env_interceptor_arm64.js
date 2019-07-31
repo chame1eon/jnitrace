@@ -9,14 +9,27 @@ function JNIEnvInterceptorARM64(references, threads, transport) {
   this.vaList = NULL;
   this.vaListOffset = 0;
 }
-var keepforever;
+
 JNIEnvInterceptorARM64.prototype = new JNIEnvInterceptor();
+
+JNIEnvInterceptorARM64.prototype.createStubFunction = function() {
+  var stub = Memory.alloc(Process.pageSize);
+
+  Memory.patchCode(stub, Process.pageSize, function(code) {
+    var cw = new Arm64Writer(code, { pc: stub });
+
+    cw.putInstruction(0xd65f03c0);
+
+  });
+
+  return stub;
+}
 
 JNIEnvInterceptorARM64.prototype.buildVaArgParserShellcode =
   function(text, data, parser) {
     //text = Memory.alloc(Process.pageSize);
     Memory.writePointer(text.add(0x400), parser);
-    keepforever = text;
+
     Memory.patchCode(text, Process.pageSize, function(code) {
       var cw = new Arm64Writer(code, { pc: text });
 
