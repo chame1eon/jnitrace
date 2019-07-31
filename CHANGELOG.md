@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 1.3.4
+- Bug fix - Used Interceptor.replace to ensure that the CpuContext is populated for use by the Backtracer
+- Bug fix - Updated the JNI function definitions to set the return type of Get<Type>ArrayElements to be a pointer rather than a primitive
+
 ## 1.3.3
 - Bug fix - Checked whether the this context exists before using it
 
