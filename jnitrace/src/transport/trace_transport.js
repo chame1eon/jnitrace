@@ -192,13 +192,19 @@ TraceTransport.prototype.trace = function(method, args, ret, context, add) {
 
   var backtrace = [];
 
-  var bt = Thread.backtrace(context, Backtracer.FUZZY);
+  if (context) {
+    var bt = context;
 
-  for (var i = 0; i < bt.length; i++) {
-    backtrace.push({
-      address: bt[i],
-      module: Process.findModuleByAddress(bt[i])
-    })
+    if (!(bt instanceof Array)) {
+      bt = Thread.backtrace(context, Backtracer.FUZZY);
+    }
+
+    for (var i = 0; i < bt.length; i++) {
+      backtrace.push({
+        address: bt[i],
+        module: Process.findModuleByAddress(bt[i])
+      });
+    }
   }
 
   send({

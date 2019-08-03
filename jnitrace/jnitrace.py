@@ -110,6 +110,11 @@ class Formatter: # pylint: disable=too-few-public-methods
                 opt = self._jclasses[val]["name"]
             else:
                 opt = "unknown"
+        elif arg_type == "jboolean":
+            if value == 0:
+                opt = "false"
+            else:
+                opt = "true"
 
         if opt:
             print("{:6d} ms {}|- {:12s}: {}  {{ {} }}{}".format(

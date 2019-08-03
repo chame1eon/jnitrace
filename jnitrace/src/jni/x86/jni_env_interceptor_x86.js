@@ -31,9 +31,6 @@ JNIEnvInterceptorX86.prototype.buildVaArgParserShellcode =
 
       cw.flush();
     });
-
-    // required for some reason...
-    Interceptor.attach(text.add(0), function() {});
   }
 
 JNIEnvInterceptorX86.prototype.setUpVaListArgExtract = function(vaList) {

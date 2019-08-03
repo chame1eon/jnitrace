@@ -1,6 +1,6 @@
 # jnitrace
 
-_A Frida module to trace use of the JNI API in Android apps._
+_A Frida based tool to trace use of the JNI API in Android apps._
 
 Native libraries contained within Android Apps often make use of the JNI API to
 utilize the Android Runtime. Tracking those calls through

@@ -133,6 +133,7 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
   function(id, methodAddr) {
     var self = this;
     var method = JNI_ENV_METHODS[id];
+    var vaArgsBts = {};
 
     var text = Memory.alloc(Process.pageSize);
     var data = Memory.alloc(Process.pageSize);
@@ -188,8 +189,10 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
         self.transport.trace(method,
                               localArgs,
                               ret,
-                              this.context,
+                              vaArgsBts[this.threadId],
                               vaArgs.javaParams);
+
+        delete vaArgsBts[this.threadId];
 
         return ret;
       }, retType, callbackParams);
@@ -204,6 +207,11 @@ JNIEnvInterceptor.prototype.createJNIVarArgIntercept =
     this.references.add(vaArgsCallback);
 
     self.buildVaArgParserShellcode(text, data, vaArgsCallback);
+
+    Interceptor.attach(text, function(args) {
+      vaArgsBts[this.threadId] =
+                        Thread.backtrace(this.context, Backtracer.FUZZY);
+    });
 
     return text;
   }
