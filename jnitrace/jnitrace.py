@@ -90,7 +90,7 @@ class Formatter: # pylint: disable=too-few-public-methods
             Style.RESET_ALL
         ))
 
-    def _print_method_arg(self, t_s, arg_type, value):
+    def _print_method_arg(self, t_s, arg_type, value):  # pylint: disable=too-many-branches
         opt = None
         if arg_type == "jfieldID":
             val = value
