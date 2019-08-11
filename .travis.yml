@@ -7,19 +7,14 @@ install:
   - pip install -r requirements.txt
   - pip install .
   - nvm install 12.7.0
-  - npm install -g frida-compile@8.0.4
+  - npm install
 
 before_script:
-  - cd jnitrace
-  - mkdir build
-  - touch build/__init__.py
+  - touch jnitrace/build/__init__.py
 
 script:
-  - pylint jnitrace.py
-  - cd src && frida-compile main.js -o ../build/jnitrace.js
-
-after_success:
-  - cd ../../
+  - pylint jnitrace/jnitrace.py
+  - npm run lint
 
 deploy:
   provider: pypi

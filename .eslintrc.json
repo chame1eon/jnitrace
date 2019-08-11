@@ -1,0 +1,21 @@
+{
+    "parserOptions": {
+        "project": "./tsconfig.json"
+    },
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "extends": [
+        "plugin:@typescript-eslint/all"
+    ],
+    "rules": {
+        "@typescript-eslint/no-this-alias": [
+            "error",
+            {
+                "allowDestructuring": true,
+                "allowedNames": ["self"]
+            }
+        ]
+    }
+}

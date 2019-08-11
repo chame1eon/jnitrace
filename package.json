@@ -1,0 +1,21 @@
+{
+  "name": "jnitrace",
+  "version": "2.0.0",
+  "description": "A tool for tracing use of the JNI in Android apps",
+  "private": true,
+  "main": "jnitrace/src/main.js",
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "frida-compile jnitrace/src/main.ts -o jnitrace/build/jnitrace.js -x",
+    "watch": "frida-compile jnitrace/src/main.ts -o jnitrace/build/jnitrace.js -x -w",
+    "lint": "eslint jnitrace/src/**/*.ts"
+  },
+  "devDependencies": {
+    "@types/frida-gum": "^13.0.0",
+    "@types/node": "^12.0.4",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
+    "eslint": "^6.1.0",
+    "frida-compile": "^9.0.2"
+  }
+}
