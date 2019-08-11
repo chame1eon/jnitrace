@@ -2,22 +2,22 @@
     {
         "name": "reserved0",
         "args": [],
-        "ret": null
+        "ret": ""
     },
     {
         "name": "reserved1",
         "args": [],
-        "ret": null
+        "ret": ""
     },
     {
         "name": "reserved2",
         "args": [],
-        "ret": null
+        "ret": ""
     },
     {
         "name": "reserved3",
         "args": [],
-        "ret": null
+        "ret": ""
     },
     {
         "name": "GetVersion",

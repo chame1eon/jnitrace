@@ -8,7 +8,7 @@ manual reverse engineering can be a slow and painful process. `jnitrace` works
 as a dynamic analysis tracing tool similar to frida-trace or strace but for
 the JNI.
 
-![JNITrace Output](https://i.ibb.co/w4YpQ4y/jnitrace-1.png)
+![JNITrace Output](https://i.ibb.co/Q9YzZYp/jnitrace-1.png)
 
 ## Installation:
 
@@ -26,20 +26,25 @@ The easiest way to get running with `jnitrace` is to install using pip:
 
 After a pip install it is easy to run `jnitrace`:
 
-`jnitrace -l libnative-lib.so -b accurate -d -p com.example.myapplication`
+`jnitrace -l libnative-lib.so com.example.myapplication`
 
 `jnitrace` requires a minimum of two parameters to run a trace:
-* `-l` - is used to specify the libraries to trace. This can be a list of libraries or `*` if you want to trace all libraries.
-* `-p` - is used to specify the process to trace. It needs to be given in the form of an Android package.
+* `-l libnative-lib.so` - is used to specify the libraries to trace. This argument can be used multiple times or `*` can be used to track all libraries.
+* `com.example.myapplication` - is the Android package to trace. This package must already be installed on the device.
 
 Optional arguments are listed below:
-* `-i <spawn|attach>` - is used to specify the Frida attach mechanism to use. It can either be spawn or attach. Spawn is the default option.
-* `-b <fuzzy|accurate>` - is used to control backtrace output. Fuzzy will use
+* `-m <spawn|attach>` - is used to specify the Frida attach mechanism to use. It can either be spawn or attach. Spawn is the default option.
+* `-b <fuzzy|accurate|none>` - is used to control backtrace output. Fuzzy will use
 the Frida FUZZY Backtracer, whereas accurate will use the Frida ACCURATE
-Backtracer.
-* `-d` - is used to control whether the trace output should show any
-additional data for the method arguments. This will include buffers passed to
-a function or strings.
+Backtracer. None will prevent the backtracer from running.
+* `-i <regex>` - is used to specify the method names that should be traced. This can be helpful for reducing the noise in particularly noisy JNI apps. The option can be supplied multiple time.
+* `-e <regex>` - is used to specify the method names that should be ignored in the trace. This can be helpful for reducing the noise in particularly noisy JNI apps. The option can be supplied multiple time.
+* `-o path/output.json` - is used to specify an output path where `jnitrace` will store all traced data. The information is stored in JSON format to allow later post-processing of the trace data.
+* `-p path/to/script.js` - the path provided is used to load a Frida script into the target process before the `jnitrace` script has loaded. This can be used for defeating anti-frida or anti-debugging code before `jnitrace` starts.
+* `-a path/to/script.js` - the path provided is used to load Frida script into the target process after `jnitrace` has been loaded.
+* `--hide-data` - used to reduce the quantity of output displayed in the console. This option will hide additional data that is displayed as hexdumps or as string de-references.
+* `--ignore-env` - using this option will hide all calls the app is making using the JNIEnv struct.
+* `--ignore-vm` - using this option will hide all calls the app is making using the JavaVM struct.
 
 ***Note***
 
@@ -54,18 +59,15 @@ instructions for installing frida have been followed, the following command will
 Building `jnitrace` from source requires that `node` first be installed.
 After installing `node`, the following commands need to be run:
 
-* `npm install frida-compile`
-* `cd /path/to/jnitrace/src`
-* `frida-compile main.js -o ../build/jnitrace.js -w`
+* `npm install`
+* `npm run watch`
 
-`frida-compile` will run in the background compiling the source to the output
-file, `jnitrace.js`. By using the `-w` command with `frida-compile`, any
-changes to the source file trigger `frida-compile` to update the output.
-`jnitrace.py` loads from build/jnitrace.js by default, so no other
+`npm run watch` will run `frida-compile` in the background compiling the source to the output
+file, `build/jnitrace.js`. `jnitrace.py` loads from `build/jnitrace.js` by default, so no other
 changes are required to run the updates.
 
 ## Output:
-![JNITrace Output](https://i.ibb.co/TYT3mGK/jnitrace-2.png)
+![JNITrace Output](https://i.ibb.co/2K7gRbP/jnitrace-2.png)
 
 Like frida-trace, output is colored based on the API call thread.
 
