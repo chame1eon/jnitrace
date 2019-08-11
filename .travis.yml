@@ -10,7 +10,6 @@ install:
   - npm install
 
 before_script:
-  - mkdir jnitrace/build
   - touch jnitrace/build/__init__.py
 
 script:
