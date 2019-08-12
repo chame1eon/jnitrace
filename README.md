@@ -29,16 +29,20 @@ After a pip install it is easy to run `jnitrace`:
 `jnitrace -l libnative-lib.so com.example.myapplication`
 
 `jnitrace` requires a minimum of two parameters to run a trace:
-* `-l libnative-lib.so` - is used to specify the libraries to trace. This argument can be used multiple times or `*` can be used to track all libraries.
+* `-l libnative-lib.so` - is used to specify the libraries to trace. This argument can be used multiple times or `*` can be used to track all libraries. For example, `-l libnative-lib.so -l libanother-lib.so` or `-l *`.
 * `com.example.myapplication` - is the Android package to trace. This package must already be installed on the device.
 
 Optional arguments are listed below:
-* `-m <spawn|attach>` - is used to specify the Frida attach mechanism to use. It can either be spawn or attach. Spawn is the default option.
-* `-b <fuzzy|accurate|none>` - is used to control backtrace output. Fuzzy will use
-the Frida FUZZY Backtracer, whereas accurate will use the Frida ACCURATE
-Backtracer. None will prevent the backtracer from running.
-* `-i <regex>` - is used to specify the method names that should be traced. This can be helpful for reducing the noise in particularly noisy JNI apps. The option can be supplied multiple time.
-* `-e <regex>` - is used to specify the method names that should be ignored in the trace. This can be helpful for reducing the noise in particularly noisy JNI apps. The option can be supplied multiple time.
+* `-m <spawn|attach>` - is used to specify the Frida attach mechanism to use. It can either be spawn or attach. Spawn is the default and recommended option.
+* `-b <fuzzy|accurate|none>` - is used to control backtrace output. By default `jnitrace` will run the
+backtracer in `accurate` mode. This option can be changed to `fuzzy` mode or used to stop the backtrace
+by using the `none` option. See the Frida docs for an explanation on the differences.
+* `-i <regex>` - is used to specify the method names that should be traced. This can be helpful for reducing the noise in particularly large JNI apps. The option can be supplied multiple times. For example, `-i Get -i RegisterNatives` would include
+only JNI methods that contain Get or RegisterNatives in their name. Warning, using these options may result in less rich output
+information.
+* `-e <regex>` - is used to specify the method names that should be ignored in the trace. This can be helpful for reducing the noise in particularly large JNI apps. The option can be supplied multiple times. For example, `-e ^Find -e GetEnv` would exclude from
+the results all JNI method names that begin Find or contain GetEnv. Warning, using these options may result in less rich output
+information.
 * `-o path/output.json` - is used to specify an output path where `jnitrace` will store all traced data. The information is stored in JSON format to allow later post-processing of the trace data.
 * `-p path/to/script.js` - the path provided is used to load a Frida script into the target process before the `jnitrace` script has loaded. This can be used for defeating anti-frida or anti-debugging code before `jnitrace` starts.
 * `-a path/to/script.js` - the path provided is used to load Frida script into the target process after `jnitrace` has been loaded.

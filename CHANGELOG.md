@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 2.0.1
+- Fix a bug preventing frida attach from working
+- Updated README
+
 ## 2.0.0
 - General code refactoring, including upgrading codebase to TypeScript
 - Added tracing of the JavaVM struct by default

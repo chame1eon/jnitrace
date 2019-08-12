@@ -487,7 +487,7 @@ def main():
     if args.inject_method == "spawn":
         pid = device.spawn([args.target])
     else:
-        pid = device.attach(args.target)
+        pid = device.get_process(args.target).pid
 
     session = device.attach(pid)
 
