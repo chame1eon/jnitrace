@@ -1,13 +1,23 @@
 import { JNIMethod } from "../jni/jni_method.js";
 
+import { JavaMethod } from "./java_method.js";
+
 class MethodData {
     private readonly _method: JNIMethod;
+    private readonly _jmethod: JavaMethod | undefined;
     private readonly _args: NativeArgumentValue[];
     private readonly _jparams: string[];
     private readonly _ret: NativeReturnValue;
 
-    public constructor(method: JNIMethod, args: NativeArgumentValue[], ret: NativeReturnValue, jparams? : string[]) {
+    public constructor(
+        method: JNIMethod,
+        args: NativeArgumentValue[],
+        ret: NativeReturnValue,
+        jmethod?: JavaMethod,
+        jparams? : string[]
+    ) {
         this._method = method;
+        this._jmethod = jmethod;
         this._args = args;
         this._ret = ret;
         if (jparams === undefined) {
@@ -19,6 +29,10 @@ class MethodData {
 
     public get method(): JNIMethod {
         return this._method;
+    }
+
+    public get javaMethod(): JavaMethod | undefined {
+        return this._jmethod;
     }
 
     public get args(): NativeArgumentValue[] {

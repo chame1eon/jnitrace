@@ -110,11 +110,17 @@ class DataTransport {
     private readonly threads: JNIThreadManager;
     private readonly start: number;
     private readonly byteArraySizes: { [id: string]: number };
+    private readonly jobjects: { [id: string]: string };
+    private readonly jfieldIDs: { [id: string]: string };
+    private readonly jmethodIDs: { [id: string]: string };
 
     public constructor(threads: JNIThreadManager) {
         this.threads = threads;
         this.start = Date.now();
         this.byteArraySizes = {};
+        this.jobjects = {};
+        this.jfieldIDs = {};
+        this.jmethodIDs = {};
     }
 
     public reportJavaVMCall(
@@ -192,9 +198,58 @@ class DataTransport {
         if (name === "GetArrayLength") {
             this.byteArraySizes[data.args[JARRAY_INDEX].toString()]
                 = data.ret as number;
-        } if (name.startsWith("New") && name.endsWith("Array")) {
+        } else if (name.startsWith("New") && name.endsWith("Array")) {
             this.byteArraySizes[data.ret.toString()]
                 = data.args[JARRAY_INDEX] as number;
+        } else if (["GetMethodID", "GetStaticMethodID"].includes(name)) {
+            const methodID = data.ret.toString();
+            const name = (data.args[2] as NativePointer).readCString();
+            const sig = (data.args[3] as NativePointer).readCString();
+            if (name !== null && sig !== sig) {
+                this.jmethodIDs[methodID] = name + sig;
+            }
+        } else if (["GetFieldID", "GetStaticFieldID"].includes(name)) {
+            const fieldID = data.ret.toString();
+            const name = (data.args[2] as NativePointer).readCString();
+            const sig = (data.args[3] as NativePointer).readCString();
+            if (name !== null && sig !== null) {
+                this.jfieldIDs[fieldID] = name + sig;
+            }
+        } else if (["FindClass", "DefineClass"].includes(name)) {
+            const jclass = data.ret.toString();
+            const name = (data.args[1] as NativePointer).readCString();
+            if (name !== null) {
+                this.jobjects[jclass] = name;
+            }
+        } else if (name.startsWith("New") && name.endsWith("GlobalRef")) {
+            const newRef = data.ret.toString();
+            const oldRef = data.args[1].toString();
+            if (this.jobjects[oldRef] !== undefined) {
+                this.jobjects[newRef] = this.jobjects[oldRef];
+            }
+        } else if (name.startsWith("Delete") && name.endsWith("GlobalRef")) {
+            const jobject = data.args[1].toString();
+            delete this.jobjects[jobject];
+        } else if (name === "GetObjectClass") {
+            const jobject = data.args[1].toString();
+            const jclass = data.ret.toString();
+            if (this.jobjects[jobject] !== undefined) {
+                this.jobjects[jclass] = jobject;
+            }
+        } else if (name.startsWith("Call")) {
+            // Is the completely require -- think -- all these objects must be created somewhere? What about overriding?
+            if (data.javaMethod !== undefined) {
+                let start = 4;
+                if (["jvalue*", "va_list"].includes(data.method.args[3])) {
+                    start = 5;
+                }
+                for (let i = start; i < data.args.length; i++) {
+                    if (Types.JOBJECT.includes(data.javaMethod.nativeParams[i - start])) {
+                        this.jobjects[data.args[i].toString()] = data.javaMethod.params[i - start];
+                    }
+                }
+                // if ret type is Object then do the same as above
+            }
         }
     }
 
@@ -222,7 +277,33 @@ class DataTransport {
         }
 
         return false;
-    } 
+    }
+
+    private enrichTraceData(data: MethodData,
+        args: DataJSONContainer[],
+        ret: DataJSONContainer[]
+    ) {
+        let i = 0;
+        for (; i < args.length; i++) {
+            if (["jvalue*, va_list"].includes(data.method.args[i])) {
+                continue;
+            }
+
+            if (Types.JOBJECT.includes(data.method.args[i])) {
+                if (this.jobjects[data.args[i].toString()] !== undefined) {
+                    args[i].metadata = this.jobjects[data.args[i].toString()];
+                }
+            } else if (data.method.args[i] === "jmethodID") {
+                if (this.jmethodIDs[data.args[i].toString()] !== undefined) {
+                    args[i].metadata = this.jmethodIDs[data.args[i].toString()];
+                }
+            } else if (data.method.args[i] === "jfieldID") {
+                if (this.jfieldIDs[data.args[i].toString()] !== undefined) {
+                    args[i].metadata = this.jfieldIDs[data.args[i].toString()];
+                }
+            }
+        }
+    }
 
     private addDefinceClassArgs(
         data: MethodData,
