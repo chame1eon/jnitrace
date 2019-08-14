@@ -94,7 +94,8 @@ class TraceFormatter:
             Style.RESET_ALL
         ))
 
-    def _get_data_metadata(self, arg_type, value):
+    @classmethod
+    def _get_data_metadata(cls, arg_type, value):
         opt = None
         if arg_type == "jboolean":
             if value == 0:
@@ -110,6 +111,7 @@ class TraceFormatter:
             self._color_manager.get_current_color()
         ), end="")
 
+    # pylint: disable=too-many-arguments
     def _print_data_value(self, sym, value, arg_type=None, opt=None, padding=0):
         if not opt:
             opt = self._get_data_metadata(arg_type, value)

@@ -65,7 +65,7 @@ class DataJSONContainer {
         return this.metadata;
     }
 
-    public setMetadata(metadata: string | undefined) {
+    public setMetadata(metadata: string | undefined): void {
         this.metadata = metadata;
     }
 };
@@ -270,6 +270,8 @@ class DataTransport {
     }
 
     private updateObjectIDsFromCall(data: MethodData): void {
+        const TYPE_START = 1;
+        const TYPE_END = -1;
         const LAST_CALL_INDEX = 3;
         const CALL_PTRS_OFFSET = 5;
         if (data.javaMethod !== undefined) {
@@ -286,13 +288,13 @@ class DataTransport {
                 }
                 const nativeJType = data.javaMethod.nativeParams[i - start];
                 if (Types.isComplexObjectType(nativeJType)) {
-                    this.jobjects[arg] = nativeJType.slice(1, -1);
+                    this.jobjects[arg] = nativeJType.slice(TYPE_START, TYPE_END);
                 }
             }
             if (data.method.name.includes("Object")) {
                 if (this.jobjects[data.ret.toString()] === undefined) {
                     this.jobjects[data.ret.toString()]
-                        = data.javaMethod.ret.slice(1, -1);
+                        = data.javaMethod.ret.slice(TYPE_START, TYPE_END);
                 }
             }
         }
