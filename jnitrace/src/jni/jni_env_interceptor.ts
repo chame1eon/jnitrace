@@ -227,12 +227,51 @@ abstract class JNIEnvInterceptor {
         const methods = args[METHOD_INDEX] as NativePointer;
         const size = args[SIZE_INDEX] as number;
         for (let i = 0; i < size * JNI_METHOD_SIZE; i += JNI_METHOD_SIZE) {
+            const methodsPtr = methods;
+
+            const namePtr = methodsPtr
+                .add(i * Process.pointerSize)
+                .readPointer();
+            const name = namePtr.readCString();
+
+            const sigOffset = 1;
+            const sigPtr = methodsPtr
+                .add((i + sigOffset) * Process.pointerSize)
+                .readPointer();
+            const sig = sigPtr.readCString();
+
             const addrOffset = 2;
-            const offset = (i + addrOffset) * Process.pointerSize;
-            const addr = methods.add(offset).readPointer();
+            const addr = methodsPtr
+                .add((i + addrOffset) * Process.pointerSize)
+                .readPointer();
+
+            if (name === null || sig === null) {
+                continue;
+            }
 
             Interceptor.attach(addr, {
                 onEnter(args): void {
+                    const check = name + sig;
+                    const config = Config.getInstance();
+                    const EMPTY_ARRAY_LEN = 0;
+
+                    if (config.includeExport.length > EMPTY_ARRAY_LEN) {
+                        const included = config.includeExport.filter(
+                            (i): boolean => check.includes(i)
+                        );
+                        if (included.length === EMPTY_ARRAY_LEN) {
+                            return;
+                        }
+                    }
+                    if (config.excludeExport.length > EMPTY_ARRAY_LEN) {
+                        const excluded = config.excludeExport.filter(
+                            (e): boolean => check.includes(e)
+                        );
+                        if (excluded.length > EMPTY_ARRAY_LEN) {
+                            return;
+                        }
+                    }
+
                     if (!self.threads.hasJNIEnv(this.threadId)) {
                         self.threads.setJNIEnv(
                             this.threadId, args[JNI_ENV_INDEX]
@@ -287,12 +326,14 @@ abstract class JNIEnvInterceptor {
 
             const ret = nativeFunction.apply(null, args);
 
-            let javaParams: string[] = [];
+            let jmethod: JavaMethod | undefined = undefined;
             if (args.length !== clonedArgs.length) {
                 const key = args[METHOD_ID_INDEX].toString();
-                javaParams = self.methods[key].nativeParams;
+                jmethod = self.methods[key];
             }
-            const data = new MethodData(method, clonedArgs, ret, javaParams);
+            const data = new MethodData(
+                method, clonedArgs, ret, jmethod
+            );
 
             self.transport.reportJNIEnvCall(data, this.context);
 
@@ -323,7 +364,7 @@ abstract class JNIEnvInterceptor {
             const args: NativeArgumentValue[] = [].slice.call(arguments);
             const jniEnv = self.threads.getJNIEnv(threadId);
             const key = args[METHOD_ID_INDEX].toString();
-            const nativeJTypeParams = self.methods[key].nativeParams;
+            const jmethod = self.methods[key];
 
             args[JNI_ENV_INDEX] = jniEnv;
 
@@ -331,7 +372,7 @@ abstract class JNIEnvInterceptor {
                 retType,
                 initialparamTypes).apply(null, args);
 
-            const data = new MethodData(method, args, ret, nativeJTypeParams);
+            const data = new MethodData(method, args, ret, jmethod);
 
             self.transport.reportJNIEnvCall(
                 data, self.vaArgsBacktraces[this.threadId]

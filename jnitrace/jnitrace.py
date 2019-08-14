@@ -70,45 +70,23 @@ class TraceFormatter:
     def __init__(self, _config, _buffer_output):
         self._config = _config
         self._buffer_output = _buffer_output
-        self._type_mappings = {
-            "jclasses": {},
-            "jmethods": {},
-            "jfields": {}
-        }
 
         self._current_ts = None
         self._color_manager = ColorManager()
         self._output_buffer = []
         self._is_64b = False
 
-    def _update_refs(self, method, args, ret):
-        if method["name"] in ["GetMethodID", "GetStaticMethodID"]:
-            method_id = ret
-            self._type_mappings["jmethods"][method_id] = {
-                "name": args[2]["data"],
-                "sig": args[3]["data"]
-            }
-        elif method["name"] in ["GetFieldID", "GetStaticFieldID"]:
-            field_id = ret
-            self._type_mappings["jfields"][field_id] = {
-                "name": args[2]["data"],
-                "sig": args[3]["data"]
-            }
-        elif method["name"] in ["FindClass", "DefineClass"]:
-            class_id = ret
-            self._type_mappings["jclasses"][class_id] = {
-                "name": args[1]["data"]
-            }
-
     def _print_thread_id(self, thread_id):
-        print("{:15s}/* TID {:d} */{}".format(
+        print("{}{:15s}/* TID {:d} */{}".format(
+            Fore.WHITE,
             self._color_manager.get_current_color(),
             thread_id,
             Style.RESET_ALL
         ))
 
     def _print_method_name(self, struct_type, name):
-        print("{:7d} ms {}[+] {}->{}{}".format(
+        print("{}{:7d} ms {}[+] {}->{}{}".format(
+            Fore.WHITE,
             self._current_ts,
             self._color_manager.get_current_color(),
             struct_type,
@@ -118,28 +96,7 @@ class TraceFormatter:
 
     def _get_data_metadata(self, arg_type, value):
         opt = None
-        if arg_type == "jfieldID":
-            val = value
-            jfields = self._type_mappings["jfields"]
-            if val in jfields:
-                opt = "{}:{}".format(jfields[val]["name"], jfields[val]["sig"])
-            else:
-                opt = "unknown"
-        elif arg_type == "jmethodID":
-            val = value
-            jmethods = self._type_mappings["jmethods"]
-            if val in jmethods:
-                opt = "{}{}".format(jmethods[val]["name"], jmethods[val]["sig"])
-            else:
-                opt = "unknown"
-        elif arg_type == "jclass":
-            val = value
-            jclasses = self._type_mappings["jclasses"]
-            if val in jclasses:
-                opt = jclasses[val]["name"]
-            else:
-                opt = "unknown"
-        elif arg_type == "jboolean":
+        if arg_type == "jboolean":
             if value == 0:
                 opt = "false"
             else:
@@ -147,13 +104,15 @@ class TraceFormatter:
         return opt
 
     def _print_data_prefix(self):
-        print("{:7d} ms {}|".format(
+        print("{}{:7d} ms {}|".format(
+            Fore.WHITE,
             self._current_ts,
             self._color_manager.get_current_color()
         ), end="")
 
-    def _print_data_value(self, sym, value, arg_type=None, padding=0):
-        opt = self._get_data_metadata(arg_type, value)
+    def _print_data_value(self, sym, value, arg_type=None, opt=None, padding=0):
+        if not opt:
+            opt = self._get_data_metadata(arg_type, value)
 
         self._print_data_prefix()
 
@@ -171,7 +130,7 @@ class TraceFormatter:
             print(value, end="")
 
         if opt:
-            print(" {{ {} }}".format(
+            print("    {{ {} }}".format(
                 opt
             ), end="")
 
@@ -181,7 +140,9 @@ class TraceFormatter:
         self._print_data_value(
             block["sym"],
             block["data"]["value"],
-            arg_type, padding
+            arg_type=arg_type,
+            opt=block["data"].get("metadata"),
+            padding=padding
         )
 
         if self._config["show_data"]:
@@ -194,8 +155,14 @@ class TraceFormatter:
         }
         self._print_data(block, arg_type, padding, data)
 
-    def _print_arg_sub_data(self, arg, arg_type=None, padding=4):
-        self._print_data_value(":", arg, arg_type, padding)
+    def _print_arg_sub_data(self, arg, arg_type=None, opt=None, padding=4):
+        self._print_data_value(
+            ":",
+            arg,
+            arg_type=arg_type,
+            opt=opt,
+            padding=padding
+        )
 
     def _print_ret_data(self, ret, ret_type=None, padding=0, data=None):
         block = {
@@ -240,6 +207,8 @@ class TraceFormatter:
             arg_type = method["args"][i]
             if arg_type in ["...", "va_list", "jvalue*"]:
                 add_java_args = True
+
+            if arg_type == "...":
                 break
 
             arg = args[i]
@@ -262,6 +231,7 @@ class TraceFormatter:
                 self._print_arg_sub_data(
                     arg["value"],
                     arg_type=java_params[i],
+                    opt=arg.get("metadata"),
                     padding=padding
                 )
 
@@ -359,6 +329,8 @@ class TraceFormatter:
                 output_arg["data"] = binascii.hexlify(data).decode()
             elif "data" in arg:
                 output_arg["data"] = arg["data"]
+            if "metadata" in arg:
+                output_arg["metadata"] = arg["metadata"]
             args.append(output_arg)
 
         record["args"] = args
@@ -369,6 +341,8 @@ class TraceFormatter:
 
         if "has_data" in payload["ret"]:
             ret["data"] = binascii.hexlify(data).decode()
+        if "metadata" in payload["ret"]:
+            ret["metadata"] = payload["ret"]["metadata"]
 
         record["ret"] = ret
 
@@ -402,11 +376,6 @@ class TraceFormatter:
             self._update_output_buffer(message["payload"], data)
 
         self._current_ts = payload["timestamp"]
-        method = payload["method"]
-        args = payload["args"]
-        ret = payload["ret"]
-
-        self._update_refs(method, args, ret.get("value"))
 
         self._color_manager.update_current_color(payload["thread_id"])
 
@@ -433,6 +402,10 @@ def _parse_args():
                         help="A regex filter to include a JNIEnv or JavaVM method name.")
     parser.add_argument("-e", "--exclude", action="append", default=[],
                         help="A regex filter to exclude a JNIEnv or JavaVM method name.")
+    parser.add_argument("-I", "--include-export", action="append", default=[],
+                        help="A list of library exports to trace from.")
+    parser.add_argument("-E", "--exclude-export", action="append", default=[],
+                        help="A list of library exports to avoid tracing from.")
     parser.add_argument("--hide-data", action="store_true",
                         help="Print contents of argument.")
     parser.add_argument("--ignore-env", action="store_true",
@@ -509,6 +482,8 @@ def main():
             "show_data": not args.hide_data,
             "include": args.include,
             "exclude": args.exclude,
+            "include_export": args.include_export,
+            "exclude_export": args.exclude_export,
             "env": not args.ignore_env,
             "vm": not args.ignore_vm
         }

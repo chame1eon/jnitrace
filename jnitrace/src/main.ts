@@ -65,6 +65,8 @@ function checkLibrary(path: string): boolean {
                 message.payload.show_data,
                 message.payload.include,
                 message.payload.exclude,
+                message.payload.include_export,
+                message.payload.exclude_export,
                 message.payload.env,
                 message.payload.vm
             );
@@ -167,11 +169,30 @@ if (dlopenRef !== null && dlsymRef !== null && dlcloseRef !== null) {
                 return;
             }
 
-            this.symbolAddr = ptr(args[SYMBOL_INDEX].toString());
+            this.symbol = args[SYMBOL_INDEX].readCString();
         },
         onLeave(retval): void {
             if (retval.isNull() || libBlacklist[this.handle]) {
                 return;
+            }
+
+            const EMPTY_ARRAY_LEN = 0;
+
+            if (config.includeExport.length > EMPTY_ARRAY_LEN) {
+                const included = config.includeExport.filter(
+                    (i): boolean => this.symbol.includes(i)
+                );
+                if (included.length === EMPTY_ARRAY_LEN) {
+                    return;
+                }
+            }
+            if (config.excludeExport.length > EMPTY_ARRAY_LEN) {
+                const excluded = config.excludeExport.filter(
+                    (e): boolean => this.symbol.includes(e)
+                );
+                if (excluded.length > EMPTY_ARRAY_LEN) {
+                    return;
+                }
             }
 
             if (trackedLibs[this.handle] === undefined) {
@@ -184,7 +205,7 @@ if (dlopenRef !== null && dlsymRef !== null && dlcloseRef !== null) {
             }
 
             if (trackedLibs[this.handle] !== undefined) {
-                const symbol = this.symbolAddr.readCString();
+                const symbol = this.symbol;
                 if (symbol === "JNI_OnLoad") {
                     interceptJNIOnLoad(ptr(retval.toString()));
                 } else if (symbol.startsWith("Java_") === true) {

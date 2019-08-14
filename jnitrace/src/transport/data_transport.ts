@@ -35,6 +35,7 @@ class DataJSONContainer {
     | string | NativeMethodJSONContainer[] | undefined;
     public readonly data_for: number | undefined;
     public readonly has_data: boolean | undefined;
+    private metadata: string | undefined;
 
     public constructor(
         value: NativeArgumentValue | NativeReturnValue,
@@ -58,6 +59,14 @@ class DataJSONContainer {
                 this.data_for = dataIndex;
             }
         }
+    }
+
+    public getMetadata(): string | undefined {
+        return this.metadata;
+    }
+
+    public setMetadata(metadata: string | undefined) {
+        this.metadata = metadata;
     }
 };
 
@@ -165,10 +174,6 @@ class DataTransport {
 
         this.updateState(data);
 
-        if (!config.env || this.shouldIgnoreMethod(data)) {
-            return;
-        }
-
         outputArgs.push(new DataJSONContainer(jniEnv, null));
 
         let sendData = null;
@@ -181,6 +186,12 @@ class DataTransport {
             sendData = retData;
         }
 
+        this.enrichTraceData(data, outputArgs, outputRet);
+
+        if (!config.env || this.shouldIgnoreMethod(data)) {
+            return;
+        }
+
         this.sendToHost(
             "JNIEnv",
             data,
@@ -191,65 +202,123 @@ class DataTransport {
         );
     }
 
-    private updateState(data: MethodData): void {
+    private updateArrayLengths(data: MethodData, isGet: boolean): void {
         const JARRAY_INDEX = 1;
-        const name = data.method.name;
 
-        if (name === "GetArrayLength") {
+        if (isGet) {
             this.byteArraySizes[data.args[JARRAY_INDEX].toString()]
                 = data.ret as number;
-        } else if (name.startsWith("New") && name.endsWith("Array")) {
+        } else {    //isSet
             this.byteArraySizes[data.ret.toString()]
                 = data.args[JARRAY_INDEX] as number;
-        } else if (["GetMethodID", "GetStaticMethodID"].includes(name)) {
-            const methodID = data.ret.toString();
-            const name = (data.args[2] as NativePointer).readCString();
-            const sig = (data.args[3] as NativePointer).readCString();
-            if (name !== null && sig !== sig) {
-                this.jmethodIDs[methodID] = name + sig;
-            }
-        } else if (["GetFieldID", "GetStaticFieldID"].includes(name)) {
-            const fieldID = data.ret.toString();
-            const name = (data.args[2] as NativePointer).readCString();
-            const sig = (data.args[3] as NativePointer).readCString();
-            if (name !== null && sig !== null) {
-                this.jfieldIDs[fieldID] = name + sig;
-            }
-        } else if (["FindClass", "DefineClass"].includes(name)) {
-            const jclass = data.ret.toString();
-            const name = (data.args[1] as NativePointer).readCString();
-            if (name !== null) {
-                this.jobjects[jclass] = name;
-            }
-        } else if (name.startsWith("New") && name.endsWith("GlobalRef")) {
+        }
+    }
+
+    private updateMethodIDs(data: MethodData): void {
+        const NAME_INDEX = 2;
+        const SIG_INDEX = 3;
+        const methodID = data.ret.toString();
+        const name = (data.args[NAME_INDEX] as NativePointer).readCString();
+        const sig = (data.args[SIG_INDEX] as NativePointer).readCString();
+        if (name !== null && sig !== null) {
+            this.jmethodIDs[methodID] = name + sig;
+        }
+    }
+
+    private updateFieldIDs(data: MethodData): void {
+        const NAME_INDEX = 2;
+        const SIG_INDEX = 3;
+        const fieldID = data.ret.toString();
+        const name = (data.args[NAME_INDEX] as NativePointer).readCString();
+        const sig = (data.args[SIG_INDEX] as NativePointer).readCString();
+        if (name !== null && sig !== null) {
+            this.jfieldIDs[fieldID] = name + ":" + sig;
+        }
+    }
+
+    private updateClassIDs(data: MethodData): void {
+        const NAME_INDEX = 1;
+        const jclass = data.ret.toString();
+        const name = (data.args[NAME_INDEX] as NativePointer).readCString();
+        if (name !== null) {
+            this.jobjects[jclass] = name;
+
+        }
+    }
+
+    private updateObjectIDsFromRefs(data: MethodData, isCreate: boolean): void {
+        const OBJECT_INDEX = 1;
+        if (isCreate) {
             const newRef = data.ret.toString();
-            const oldRef = data.args[1].toString();
+            const oldRef = data.args[OBJECT_INDEX].toString();
             if (this.jobjects[oldRef] !== undefined) {
                 this.jobjects[newRef] = this.jobjects[oldRef];
             }
-        } else if (name.startsWith("Delete") && name.endsWith("GlobalRef")) {
-            const jobject = data.args[1].toString();
+        } else {
+            const jobject = data.args[OBJECT_INDEX].toString();
             delete this.jobjects[jobject];
+        }
+    }
+
+    private updateObjectIDsFromClass(data: MethodData): void {
+        const OBJECT_INDEX = 1;
+        const jobject = data.args[OBJECT_INDEX].toString();
+        const jclass = data.ret.toString();
+        if (this.jobjects[jobject] !== undefined) {
+            this.jobjects[jclass] = jobject;
+        }
+    }
+
+    private updateObjectIDsFromCall(data: MethodData): void {
+        const LAST_CALL_INDEX = 3;
+        const CALL_PTRS_OFFSET = 5;
+        if (data.javaMethod !== undefined) {
+            let start = 4;
+            const lastArg = data.method.args[LAST_CALL_INDEX];
+            if (["jvalue*", "va_list"].includes(lastArg)) {
+                start = CALL_PTRS_OFFSET;
+            }
+            for (let i = start; i < data.args.length; i++) {
+                const arg = data.args[i].toString();
+                if (this.jobjects[arg] !== undefined) {
+                    // skip where we have an existing class name
+                    continue;
+                }
+                const nativeJType = data.javaMethod.nativeParams[i - start];
+                if (Types.isComplexObjectType(nativeJType)) {
+                    this.jobjects[arg] = nativeJType.slice(1, -1);
+                }
+            }
+            if (data.method.name.includes("Object")) {
+                if (this.jobjects[data.ret.toString()] === undefined) {
+                    this.jobjects[data.ret.toString()]
+                        = data.javaMethod.ret.slice(1, -1);
+                }
+            }
+        }
+    }
+
+    private updateState(data: MethodData): void {
+        const name = data.method.name;
+
+        if (name === "GetArrayLength") {
+            this.updateArrayLengths(data, true);
+        } else if (name.startsWith("New") && name.endsWith("Array")) {
+            this.updateArrayLengths(data, false);
+        } else if (["GetMethodID", "GetStaticMethodID"].includes(name)) {
+            this.updateMethodIDs(data);
+        } else if (["GetFieldID", "GetStaticFieldID"].includes(name)) {
+            this.updateFieldIDs(data);
+        } else if (["FindClass", "DefineClass"].includes(name)) {
+            this.updateClassIDs(data);
+        } else if (name.startsWith("New") && name.endsWith("GlobalRef")) {
+            this.updateObjectIDsFromRefs(data, true);
+        } else if (name.startsWith("Delete") && name.endsWith("GlobalRef")) {
+            this.updateObjectIDsFromRefs(data, false);
         } else if (name === "GetObjectClass") {
-            const jobject = data.args[1].toString();
-            const jclass = data.ret.toString();
-            if (this.jobjects[jobject] !== undefined) {
-                this.jobjects[jclass] = jobject;
-            }
+            this.updateObjectIDsFromClass(data);
         } else if (name.startsWith("Call")) {
-            // Is the completely require -- think -- all these objects must be created somewhere? What about overriding?
-            if (data.javaMethod !== undefined) {
-                let start = 4;
-                if (["jvalue*", "va_list"].includes(data.method.args[3])) {
-                    start = 5;
-                }
-                for (let i = start; i < data.args.length; i++) {
-                    if (Types.JOBJECT.includes(data.javaMethod.nativeParams[i - start])) {
-                        this.jobjects[data.args[i].toString()] = data.javaMethod.params[i - start];
-                    }
-                }
-                // if ret type is Object then do the same as above
-            }
+            this.updateObjectIDsFromCall(data);
         }
     }
 
@@ -279,29 +348,64 @@ class DataTransport {
         return false;
     }
 
+    private enrichSingleItem(
+        type: string,
+        key: string,
+        item: DataJSONContainer
+    ): void {
+        if (Types.isComplexObjectType(type)) {
+            if (this.jobjects[key] !== undefined) {
+                item.setMetadata(this.jobjects[key]);
+            }
+        } else if (type === "jmethodID") {
+            if (this.jmethodIDs[key] !== undefined) {
+                item.setMetadata(this.jmethodIDs[key]);
+            }
+        } else if (type === "jfieldID") {
+            if (this.jfieldIDs[key] !== undefined) {
+                item.setMetadata(this.jfieldIDs[key]);
+            }
+        }
+    }
+
     private enrichTraceData(data: MethodData,
         args: DataJSONContainer[],
         ret: DataJSONContainer[]
-    ) {
+    ): void {
+        const ONLY_RET = 0;
         let i = 0;
-        for (; i < args.length; i++) {
+        for (; i < data.method.args.length; i++) {
             if (["jvalue*, va_list"].includes(data.method.args[i])) {
+                i++;
                 continue;
+            } else if (data.method.args[i] === "...") {
+                break;
             }
 
-            if (Types.JOBJECT.includes(data.method.args[i])) {
-                if (this.jobjects[data.args[i].toString()] !== undefined) {
-                    args[i].metadata = this.jobjects[data.args[i].toString()];
-                }
-            } else if (data.method.args[i] === "jmethodID") {
-                if (this.jmethodIDs[data.args[i].toString()] !== undefined) {
-                    args[i].metadata = this.jmethodIDs[data.args[i].toString()];
-                }
-            } else if (data.method.args[i] === "jfieldID") {
-                if (this.jfieldIDs[data.args[i].toString()] !== undefined) {
-                    args[i].metadata = this.jfieldIDs[data.args[i].toString()];
-                }
+            this.enrichSingleItem(
+                data.method.args[i],
+                data.args[i].toString(),
+                args[i]
+            );
+        }
+
+        const OFFSET = i;
+        for (; i < args.length; i++) {
+            if (data.javaMethod !== undefined) {
+                this.enrichSingleItem(
+                    data.javaMethod.nativeParams[i - OFFSET],
+                    data.args[i].toString(),
+                    args[i]
+                );
             }
+        }
+
+        if (data.ret !== undefined) {
+            this.enrichSingleItem(
+                data.method.ret,
+                data.ret.toString(),
+                ret[ONLY_RET]
+            );
         }
     }
 

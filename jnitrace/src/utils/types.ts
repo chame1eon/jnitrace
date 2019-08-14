@@ -3,24 +3,15 @@ const TYPE_SIZE_64_BIT = 8;
 const TYPE_SIZE_CHAR = 1;
 
 const Types = {
-    JOBJECT: [
-        "jobject",
-        "jclass",
-        "jweak",
-        "jthrowable",
-        "jstring",
-        "jarray",
-        "jbooleanArray",
-        "jbyteArray",
-        "jcharArray",
-        "jshortArray",
-        "jintArray",
-        "jlongArray",
-        "jfloatArray",
-        "jdoubleArray",
-        "jobjectArray"
-        
-    ],
+    isComplexObjectType(type: string): boolean {
+        const JOBJECT = [
+            "jobject",
+            "jclass",
+            "jweak"  
+        ];
+
+        return JOBJECT.includes(type);
+    },
     sizeOf(type: string): number {
         if (type === "double" || type === "float" || type === "int64") {
             return TYPE_SIZE_64_BIT;

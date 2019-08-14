@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 2.1.0
+- Added two new command line arguments to filter the library exports from the trace
+- Changed the way object data was associated with output to ensure it is still visible if the method is not being traced
+
 ## 2.0.1
 - Fix a bug preventing frida attach from working
 - Updated README

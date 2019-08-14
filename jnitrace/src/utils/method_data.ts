@@ -13,17 +13,16 @@ class MethodData {
         method: JNIMethod,
         args: NativeArgumentValue[],
         ret: NativeReturnValue,
-        jmethod?: JavaMethod,
-        jparams? : string[]
+        jmethod?: JavaMethod
     ) {
         this._method = method;
         this._jmethod = jmethod;
         this._args = args;
         this._ret = ret;
-        if (jparams === undefined) {
+        if (jmethod === undefined) {
             this._jparams = [];
         } else {
-            this._jparams = jparams;
+            this._jparams = jmethod.nativeParams;
         }
     };
 

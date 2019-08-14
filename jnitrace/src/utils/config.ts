@@ -6,6 +6,8 @@ class Config {
     private readonly _showData: boolean;
     private readonly _include: string[];
     private readonly _exclude: string[];
+    private readonly _includeExport: string[];
+    private readonly _excludeExport: string[];
     private readonly _env: boolean;
     private readonly _vm: boolean;
 
@@ -16,6 +18,8 @@ class Config {
         showData: boolean = true,
         include: string[] = [],
         exclude: string[] = [],
+        includeExport: string[] = [],
+        excludeExport: string[] = [],
         env: boolean = true,
         vm: boolean = true) {
         this._libsToTrack = libsToTrack;
@@ -23,6 +27,8 @@ class Config {
         this._showData = showData;
         this._include = include;
         this._exclude = exclude;
+        this._includeExport = includeExport;
+        this._excludeExport = excludeExport;
         this._env = env;
         this._vm = vm;
 
@@ -49,6 +55,14 @@ class Config {
         return this._exclude;
     }
 
+    public get includeExport(): string[] {
+        return this._includeExport;
+    }
+
+    public get excludeExport(): string[] {
+        return this._excludeExport;
+    }
+
     public get env(): boolean {
         return this._env;
     }
@@ -65,22 +79,28 @@ class Config {
         }
     }
 
-    public static getInstance(libsToTrack?: string[],
+    public static getInstance(
+        libsToTrack?: string[],
         backtrace? : string,
         showData? : boolean,
         include? : string[],
         exclude? : string[],
+        includeExport? : string[],
+        excludeExport? : string[],
         env? : boolean,
-        vm? : boolean): Config {
+        vm? : boolean
+    ): Config {
         if (libsToTrack !== undefined &&
                 backtrace !== undefined &&
                 showData !== undefined &&
                 include !== undefined &&
                 exclude !== undefined &&
+                includeExport !== undefined &&
+                excludeExport !== undefined &&
                 env !== undefined &&
                 vm !== undefined) {
             Config.instance = new Config(libsToTrack, backtrace, showData,
-                include, exclude, env, vm);
+                include, exclude, includeExport, excludeExport, env, vm);
             Config.instance._hostInitialised = true;
         } else if (Config.instance === undefined) {
             Config.instance = new Config();
