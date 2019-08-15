@@ -8,7 +8,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='jnitrace',
-    version='2.1.0',
+    version='2.2.0',
     description='A tool for tracing use of the JNI in Android apps',
     long_description=long_description,
     long_description_content_type='text/markdown',

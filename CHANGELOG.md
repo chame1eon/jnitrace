@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 2.2.0
+- Changed backtrace output to include debug symbols, where possible
+
 ## 2.1.0
 - Added two new command line arguments to filter the library exports from the trace
 - Changed the way object data was associated with output to ensure it is still visible if the method is not being traced

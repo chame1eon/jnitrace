@@ -73,10 +73,16 @@ class DataJSONContainer {
 class BacktraceJSONContainer {
     public readonly address: NativePointer;
     public readonly module: Module | null;
+    public readonly symbol: DebugSymbol | null;
 
-    public constructor(address: NativePointer, module: Module | null) {
+    public constructor(
+        address: NativePointer,
+        module: Module | null,
+        symbol: DebugSymbol | null
+    ) {
         this.address = address;
         this.module = module;
+        this.symbol = symbol;
     }
 };
 
@@ -910,7 +916,8 @@ class DataTransport {
         return bt.map((addr): BacktraceJSONContainer => {
             return new BacktraceJSONContainer(
                 addr,
-                Process.findModuleByAddress(addr)
+                Process.findModuleByAddress(addr),
+                DebugSymbol.fromAddress(addr)
             );
         });
     }

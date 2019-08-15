@@ -237,8 +237,57 @@ class TraceFormatter:
                     padding=padding
                 )
 
+    @classmethod
+    def _create_backtrace_symbol(cls, module_name, symbol_name):
+        if "+" not in symbol_name:
+            return module_name + "!" + symbol_name
+        return symbol_name
+
+    def _calculate_backtrace_lengths(self, backtrace):
+        max_name = 0
+        max_len = 0
+        size = 10
+
+        for b_t in backtrace:
+            if not b_t["module"]:
+                break
+
+            if len(b_t["address"]) > 10:
+                self._is_64b = True
+
+            if self._is_64b:
+                size = 18
+            else:
+                size = 10
+
+            break
+
+        for b_t in backtrace:
+            if not b_t["module"]:
+                break
+
+            symbol_name = self._create_backtrace_symbol(
+                b_t["module"]["name"], b_t["symbol"]["name"]
+            )
+
+            b_t_len = len(("|-> {:>" + str(size) + "s}: {} ({}:{})").format(
+                b_t["address"],
+                symbol_name,
+                b_t["module"]["name"],
+                b_t["module"]["base"]
+            ))
+
+            if b_t_len > max_len:
+                max_len = b_t_len
+            if len(b_t["symbol"]["name"]) > max_name:
+                max_name = len(b_t["symbol"]["name"])
+
+        return max_len, max_name, size
+
     def _print_backtrace(self, backtrace):
-        padding = "-" * 25
+        max_len, max_name, size = self._calculate_backtrace_lengths(backtrace)
+
+        padding = "-" * (round(max_len / 2) - int(len("Backtrace") / 2))
         print("{:7d} ms {}{padding}Backtrace{padding}{}".format(
             self._current_ts,
             self._color_manager.get_current_color(),
@@ -249,19 +298,21 @@ class TraceFormatter:
         for b_t in backtrace:
             if not b_t["module"]:
                 break
-            if len(b_t["address"]) > 10:
-                self._is_64b = True
 
-            if self._is_64b:
-                size = 18
-            else:
-                size = 10
+            symbol_name = self._create_backtrace_symbol(
+                b_t["module"]["name"], b_t["symbol"]["name"]
+            )
 
-            print(("{:7d} ms {}|-> {:>" + str(size) + "s}: {} ({}){}").format(
+            format_str = "{:7d} ms {}|-> {:>" \
+                            + str(size) + "s}: {:>" \
+                                + str(max_name) + "s} ({}:{}){}"
+
+            print(format_str.format(
                 self._current_ts,
                 self._color_manager.get_current_color(),
                 b_t["address"],
-                b_t["module"]["path"],
+                symbol_name,
+                b_t["module"]["name"],
                 b_t["module"]["base"],
                 Style.RESET_ALL
             ))

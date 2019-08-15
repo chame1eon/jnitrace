@@ -8,7 +8,7 @@ manual reverse engineering can be a slow and painful process. `jnitrace` works
 as a dynamic analysis tracing tool similar to frida-trace or strace but for
 the JNI.
 
-![JNITrace Output](https://i.ibb.co/Q9YzZYp/jnitrace-1.png)
+![JNITrace Output](https://i.ibb.co/ZJ04cBB/jnitrace-1.png)
 
 ## Installation:
 
@@ -76,7 +76,7 @@ file, `build/jnitrace.js`. `jnitrace.py` loads from `build/jnitrace.js` by defau
 changes are required to run the updates.
 
 ## Output:
-![JNITrace Output](https://i.ibb.co/2K7gRbP/jnitrace-2.png)
+![JNITrace Output](https://i.ibb.co/WfDq1cy/jnitrace-2.png)
 
 Like frida-trace, output is colored based on the API call thread.
 
