@@ -1,5 +1,11 @@
 # jnitrace Change Log
 
+## 2.2.1
+- Sorted the alignment of the backtraces so they are right justified
+- Fixed a bug when tracing Release<ArrayType>Elements where all types were assumed to be the size of a pointer
+- Upgraded eslint-package to patch security vulnerability
+- Stopped trying to kill Frida session if it was already dead
+
 ## 2.2.0
 - Changed backtrace output to include debug symbols, where possible
 

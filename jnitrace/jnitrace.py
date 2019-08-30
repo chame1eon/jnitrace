@@ -77,7 +77,7 @@ class TraceFormatter:
         self._is_64b = False
 
     def _print_thread_id(self, thread_id):
-        print("{}{:15s}/* TID {:d} */{}".format(
+        print("{}{:16s}/* TID {:d} */{}".format(
             Fore.WHITE,
             self._color_manager.get_current_color(),
             thread_id,
@@ -279,8 +279,8 @@ class TraceFormatter:
 
             if b_t_len > max_len:
                 max_len = b_t_len
-            if len(b_t["symbol"]["name"]) > max_name:
-                max_name = len(b_t["symbol"]["name"])
+            if len(symbol_name) > max_name:
+                max_name = len(symbol_name)
 
         return max_len, max_name, size
 
@@ -488,6 +488,24 @@ def _parse_args():
 
     return args
 
+def _finish(args, device, pid, scripts):
+    print('Stopping application (name={}, pid={})...'.format(
+        args.target,
+        pid
+    ), end="")
+    try:
+        if args.append:
+            scripts["append"].unload()
+        scripts["script"].unload()
+        if args.prepend:
+            scripts["prepend"].unload()
+
+        device.kill(pid)
+    except frida.InvalidOperationError:
+        pass
+    finally:
+        print("stopped.")
+
 def main():
     """
     Main function to process command arguments and to inject Frida.
@@ -516,16 +534,19 @@ def main():
         pid = device.get_process(args.target).pid
 
     session = device.attach(pid)
+    scripts = {}
 
     if args.prepend:
         prepend = session.create_script(args.prepend.read(), runtime="v8")
         prepend.on("message", _custom_script_on_message)
         prepend.load()
         args.prepend.close()
+        scripts["prepend"] = prepend
 
     script = session.create_script(jscode, runtime="v8")
     script.on("message", formatter.on_message)
     script.load()
+    scripts["script"] = script
 
     script.post({
         "type": "config",
@@ -547,6 +568,7 @@ def main():
         append.on("message", _custom_script_on_message)
         append.load()
         args.append.close()
+        scripts["append"] = append
 
     if args.inject_method == "spawn":
         device.resume(pid)
@@ -564,18 +586,7 @@ def main():
         json.dump(formatter.get_output(), args.output, indent=4)
         args.output.close()
 
-    if args.append:
-        append.unload()
-    script.unload()
-    if args.prepend:
-        prepend.unload()
-
-    print('Stopping application (name={}, pid={})...'.format(
-        args.target,
-        pid
-    ), end="")
-    device.kill(pid)
-    print("stopped.")
+    _finish(args, device, pid, scripts)
 
 if __name__ == '__main__':
     main()

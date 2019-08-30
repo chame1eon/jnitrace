@@ -687,7 +687,7 @@ class DataTransport {
         const BUFFER_PTR_INDEX = 2;
         const SKIP_ENV_INDEX = 1;
 
-        const byteArrayArg = data.method.args[BYTE_ARRAY_INDEX];
+        const byteArrayArg = data.method.args[BUFFER_PTR_INDEX];
         const type = byteArrayArg.slice(TYPE_NAME_START, TYPE_NAME_END);
         const nType = Types.convertNativeJTypeToFridaType(type);
         const size = Types.sizeOf(nType);
