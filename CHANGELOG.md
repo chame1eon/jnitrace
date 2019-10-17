@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 2.2.2
+- Bug fix to handle when a DebugSymbol look up has failed for an address.
+
 ## 2.2.1
 - Sorted the alignment of the backtraces so they are right justified
 - Fixed a bug when tracing Release<ArrayType>Elements where all types were assumed to be the size of a pointer

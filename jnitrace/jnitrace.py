@@ -239,6 +239,8 @@ class TraceFormatter:
 
     @classmethod
     def _create_backtrace_symbol(cls, module_name, symbol_name):
+        if not symbol_name:
+            return "unknown"
         if "+" not in symbol_name:
             return module_name + "!" + symbol_name
         return symbol_name
