@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 2.2.3
+- Improved the backtrace output when no DebugSymbol is found for an address.
+
 ## 2.2.2
 - Bug fix to handle when a DebugSymbol look up has failed for an address.
 

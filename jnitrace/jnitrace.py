@@ -238,9 +238,13 @@ class TraceFormatter:
                 )
 
     @classmethod
-    def _create_backtrace_symbol(cls, module_name, symbol_name):
+    def _create_backtrace_symbol(cls, module, symbol):
+        symbol_name = symbol["name"]
+        module_name = module["name"]
         if not symbol_name:
-            return "unknown"
+            symbol_name = hex(
+                int(symbol["address"], 16) - int(module["base"], 16)
+            )
         if "+" not in symbol_name:
             return module_name + "!" + symbol_name
         return symbol_name
@@ -269,7 +273,7 @@ class TraceFormatter:
                 break
 
             symbol_name = self._create_backtrace_symbol(
-                b_t["module"]["name"], b_t["symbol"]["name"]
+                b_t["module"], b_t["symbol"]
             )
 
             b_t_len = len(("|-> {:>" + str(size) + "s}: {} ({}:{})").format(
@@ -302,7 +306,7 @@ class TraceFormatter:
                 break
 
             symbol_name = self._create_backtrace_symbol(
-                b_t["module"]["name"], b_t["symbol"]["name"]
+                b_t["module"], b_t["symbol"]
             )
 
             format_str = "{:7d} ms {}|-> {:>" \
