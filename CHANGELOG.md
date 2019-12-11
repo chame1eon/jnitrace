@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.0.0
+- Extracted the engine in jnitrace to a new project so that the API can be used by developers
+
 ## 2.2.3
 - Improved the backtrace output when no DebugSymbol is found for an address.
 

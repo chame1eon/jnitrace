@@ -1,257 +1,298 @@
-
-import { ReferenceManager } from "./utils/reference_manager";
-import { Config } from "./utils/config";
-
+import { JNILibraryWatcher } from "jnitrace-engine";
+import { JNIInterceptor } from "jnitrace-engine";
+import { JNINativeReturnValue } from "jnitrace-engine";
+import { JNIInvocationCallback } from "jnitrace-engine";
+import { Config } from "jnitrace-engine";
+import { ConfigBuilder } from "jnitrace-engine";
+import { MethodData } from "./utils/method_data";
 import { DataTransport } from "./transport/data_transport";
 
-import { JNIEnvInterceptor } from "./jni/jni_env_interceptor";
-import { JNIEnvInterceptorX86 } from "./jni/x86/jni_env_interceptor_x86";
-import { JNIEnvInterceptorX64 } from "./jni/x64/jni_env_interceptor_x64";
-import { JNIEnvInterceptorARM } from "./jni/arm/jni_env_interceptor_arm";
-import { JNIEnvInterceptorARM64 } from "./jni/arm64/jni_env_interceptor_arm64";
-
-import { JavaVMInterceptor } from "./jni/java_vm_interceptor";
-import { JNIThreadManager } from "./jni/jni_thread_manager";
-
 const IS_IN_REPL = true;
-const JNI_ENV_INDEX = 0;
-const JAVA_VM_INDEX = 0;
-const LIB_TRACK_FIRST_INDEX = 0;
+const transport = new DataTransport();
+let config : Config | null = null;
 
-const threads = new JNIThreadManager();
-const references = new ReferenceManager();
-const transport = new DataTransport(threads);
+JNILibraryWatcher.setCallback({
+    onLoaded(path : string) {
+        if (!IS_IN_REPL && !Config.initialised()) {
+            const op = recv("config", (message): void => {
+                const builder = new ConfigBuilder();
+                builder.libraries = message.payload.libraries;
+                builder.backtrace = message.payload.backtrace;
+                builder.includeExports = message.payload.include_export;
+                builder.excludeExports = message.payload.exclude_export;
+                builder.env = message.payload.env;
+                builder.vm = message.payload.vm;
 
-let jniEnvInterceptor: JNIEnvInterceptor | undefined = undefined;
-if (Process.arch === "ia32") {
-    jniEnvInterceptor = new JNIEnvInterceptorX86(references, threads, transport);
-} else if (Process.arch === "x64") {
-    jniEnvInterceptor = new JNIEnvInterceptorX64(references, threads, transport);
-} else if (Process.arch === "arm") {
-    jniEnvInterceptor = new JNIEnvInterceptorARM(references, threads, transport);
-} else if (Process.arch === "arm64") {
-    jniEnvInterceptor = new JNIEnvInterceptorARM64(references, threads, transport);
-}
+                config = builder.build();
 
-if (jniEnvInterceptor === undefined) {
-    throw new Error(
-        Process.arch + " currently unsupported, please file an issue."
-    );
-}
-
-const javaVMInterceptor = new JavaVMInterceptor(
-    references,
-    threads,
-    transport,
-    jniEnvInterceptor
-);
-
-jniEnvInterceptor.setJavaVMInterceptor(javaVMInterceptor);
-
-let config: Config = Config.getInstance();
-const trackedLibs: { [id: string]: boolean } = {};
-const libBlacklist: { [id: string]: boolean } = {};
-
-
-function checkLibrary(path: string): boolean {
-    const EMPTY_ARRAY_LENGTH = 0;
-    const ONE_ELEMENT_ARRAY_LENGTH = 1;
-    let willFollowLib = false;
-    if (!IS_IN_REPL && !Config.initialised()) {
-        const op = recv("config", (message): void => {
-            config = Config.getInstance(
-                message.payload.libraries,
-                message.payload.backtrace,
-                message.payload.show_data,
-                message.payload.include,
-                message.payload.exclude,
-                message.payload.include_export,
-                message.payload.exclude_export,
-                message.payload.env,
-                message.payload.vm
-            );
-        });
-        op.wait();
-    }
-    if (config.libsToTrack.length === ONE_ELEMENT_ARRAY_LENGTH) {
-        if (config.libsToTrack[LIB_TRACK_FIRST_INDEX] === "*") {
-            willFollowLib = true;
+                transport.setIncludeFilter(message.payload.include);
+                transport.setExcludeFilter(message.payload.exclude);
+            });
+            op.wait();
         }
-    }
-    if (!willFollowLib) {
-        willFollowLib = config.libsToTrack.filter(
-            (l): boolean => path.includes(l)
-        ).length > EMPTY_ARRAY_LENGTH;
-    }
-    if (willFollowLib) {
-        send({
-            type: "tracked_library",
-            library: path
+
+        if (config === null) {
+            return;
+        }
+
+        config.libraries.forEach((element : string) => {
+            if (path.includes(element)) {
+                send({
+                    type: "tracked_library",
+                    library: path
+                });
+            }
         });
     }
-    return willFollowLib;
+});
+
+const callback : JNIInvocationCallback = {
+    onEnter(args : NativeArgumentValue[]) {
+        this.args = args;
+    },
+    onLeave(retval : JNINativeReturnValue) {
+        const data = new MethodData(this.methodDef, this.args, retval.get(), this.javaMethod);
+        transport.reportJNIEnvCall(
+            data, this.backtrace
+        );
+    }
 }
 
-function interceptJNIOnLoad(jniOnLoadAddr: NativePointer): InvocationListener {
-    return Interceptor.attach(jniOnLoadAddr, {
-        onEnter(args): void {
-            let shadowJavaVM = NULL;
-            const javaVM = ptr(args[JAVA_VM_INDEX].toString());
+JNIInterceptor.attach("DestroyJavaVM", callback);
+JNIInterceptor.attach("AttachCurrentThread", callback);
+JNIInterceptor.attach("DetachCurrentThread", callback);
+JNIInterceptor.attach("GetEnv", callback);
+JNIInterceptor.attach("AttachCurrentThreadAsDaemon", callback);
 
-            if (!threads.hasJavaVM()) {
-                threads.setJavaVM(javaVM);
-            }
 
-            if (!javaVMInterceptor.isInitialised()) {
-                shadowJavaVM = javaVMInterceptor.create();
-            } else {
-                shadowJavaVM = javaVMInterceptor.get();
-            }
+JNIInterceptor.attach("GetVersion", callback);
+JNIInterceptor.attach("DefineClass", callback);
+JNIInterceptor.attach("FindClass", callback);
+JNIInterceptor.attach("FromReflectedMethod", callback);
+JNIInterceptor.attach("FromReflectedField", callback);
+JNIInterceptor.attach("ToReflectedMethod", callback);
+JNIInterceptor.attach("GetSuperclass", callback);
+JNIInterceptor.attach("IsAssignableFrom", callback);
+JNIInterceptor.attach("ToReflectedField", callback);
+JNIInterceptor.attach("Throw", callback);
+JNIInterceptor.attach("ThrowNew", callback);
+JNIInterceptor.attach("ExceptionOccurred", callback);
+JNIInterceptor.attach("ExceptionDescribe", callback);
+JNIInterceptor.attach("ExceptionClear", callback);
+JNIInterceptor.attach("FatalError", callback);
+JNIInterceptor.attach("PushLocalFrame", callback);
+JNIInterceptor.attach("PopLocalFrame", callback);
+JNIInterceptor.attach("NewGlobalRef", callback);
+JNIInterceptor.attach("DeleteGlobalRef", callback);
+JNIInterceptor.attach("DeleteLocalRef", callback);
+JNIInterceptor.attach("IsSameObject", callback);
+JNIInterceptor.attach("NewLocalRef", callback);
+JNIInterceptor.attach("EnsureLocalCapacity", callback);
+JNIInterceptor.attach("AllocObject", callback);
+JNIInterceptor.attach("NewObject", callback);
+JNIInterceptor.attach("NewObjectV", callback);
+JNIInterceptor.attach("NewObjectA", callback);
+JNIInterceptor.attach("GetObjectClass", callback);
+JNIInterceptor.attach("IsInstanceOf", callback);
+JNIInterceptor.attach("GetMethodID", callback);
+JNIInterceptor.attach("CallObjectMethod", callback);
+JNIInterceptor.attach("CallObjectMethodV", callback);
+JNIInterceptor.attach("CallObjectMethodA", callback);
+JNIInterceptor.attach("CallBooleanMethod", callback);
+JNIInterceptor.attach("CallBooleanMethodV", callback);
+JNIInterceptor.attach("CallBooleanMethodA", callback);
+JNIInterceptor.attach("CallByteMethod", callback);
+JNIInterceptor.attach("CallByteMethodV", callback);
+JNIInterceptor.attach("CallByteMethodA", callback);
+JNIInterceptor.attach("CallCharMethod", callback);
+JNIInterceptor.attach("CallCharMethodV", callback);
+JNIInterceptor.attach("CallCharMethodA", callback);
+JNIInterceptor.attach("CallShortMethod", callback);
+JNIInterceptor.attach("CallShortMethodV", callback);
+JNIInterceptor.attach("CallShortMethodA", callback);
+JNIInterceptor.attach("CallIntMethod", callback);
+JNIInterceptor.attach("CallIntMethodV", callback);
+JNIInterceptor.attach("CallIntMethodA", callback);
+JNIInterceptor.attach("CallLongMethod", callback);
+JNIInterceptor.attach("CallLongMethodV", callback);
+JNIInterceptor.attach("CallLongMethodA", callback);
+JNIInterceptor.attach("CallFloatMethod", callback);
+JNIInterceptor.attach("CallFloatMethodV", callback);
+JNIInterceptor.attach("CallFloatMethodA", callback);
+JNIInterceptor.attach("CallDoubleMethod", callback);
+JNIInterceptor.attach("CallDoubleMethodV", callback);
+JNIInterceptor.attach("CallDoubleMethodA", callback);
+JNIInterceptor.attach("CallVoidMethod", callback);
+JNIInterceptor.attach("CallVoidMethodV", callback);
+JNIInterceptor.attach("CallVoidMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualObjectMethod", callback);
+JNIInterceptor.attach("CallNonvirtualObjectMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualObjectMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualBooleanMethod", callback);
+JNIInterceptor.attach("CallNonvirtualBooleanMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualBooleanMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualByteMethod", callback);
+JNIInterceptor.attach("CallNonvirtualByteMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualByteMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualCharMethod", callback);
+JNIInterceptor.attach("CallNonvirtualCharMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualCharMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualShortMethod", callback);
+JNIInterceptor.attach("CallNonvirtualShortMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualShortMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualIntMethod", callback);
+JNIInterceptor.attach("CallNonvirtualIntMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualIntMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualLongMethod", callback);
+JNIInterceptor.attach("CallNonvirtualLongMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualLongMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualFloatMethod", callback);
+JNIInterceptor.attach("CallNonvirtualFloatMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualFloatMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualDoubleMethod", callback);
+JNIInterceptor.attach("CallNonvirtualDoubleMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualDoubleMethodA", callback);
+JNIInterceptor.attach("CallNonvirtualVoidMethod", callback);
+JNIInterceptor.attach("CallNonvirtualVoidMethodV", callback);
+JNIInterceptor.attach("CallNonvirtualVoidMethodA", callback);
+JNIInterceptor.attach("GetFieldID", callback);
+JNIInterceptor.attach("GetObjectField", callback);
+JNIInterceptor.attach("GetBooleanField", callback);
+JNIInterceptor.attach("GetByteField", callback);
+JNIInterceptor.attach("GetCharField", callback);
+JNIInterceptor.attach("GetShortField", callback);
+JNIInterceptor.attach("GetIntField", callback);
+JNIInterceptor.attach("GetLongField", callback);
+JNIInterceptor.attach("GetFloatField", callback);
+JNIInterceptor.attach("GetDoubleField", callback);
+JNIInterceptor.attach("SetObjectField", callback);
+JNIInterceptor.attach("SetBooleanField", callback);
+JNIInterceptor.attach("SetByteField", callback);
+JNIInterceptor.attach("SetCharField", callback);
+JNIInterceptor.attach("SetShortField", callback);
+JNIInterceptor.attach("SetIntField", callback);
+JNIInterceptor.attach("SetLongField", callback);
+JNIInterceptor.attach("SetFloatField", callback);
+JNIInterceptor.attach("SetDoubleField", callback);
+JNIInterceptor.attach("GetStaticMethodID", callback);
+JNIInterceptor.attach("CallStaticObjectMethod", callback);
+JNIInterceptor.attach("CallStaticObjectMethodV", callback);
+JNIInterceptor.attach("CallStaticObjectMethodA", callback);
+JNIInterceptor.attach("CallStaticBooleanMethod", callback);
+JNIInterceptor.attach("CallStaticBooleanMethodV", callback);
+JNIInterceptor.attach("CallStaticBooleanMethodA", callback);
+JNIInterceptor.attach("CallStaticByteMethod", callback);
+JNIInterceptor.attach("CallStaticByteMethodV", callback);
+JNIInterceptor.attach("CallStaticByteMethodA", callback);
+JNIInterceptor.attach("CallStaticCharMethod", callback);
+JNIInterceptor.attach("CallStaticCharMethodV", callback);
+JNIInterceptor.attach("CallStaticCharMethodA", callback);
+JNIInterceptor.attach("CallStaticShortMethod", callback);
+JNIInterceptor.attach("CallStaticShortMethodV", callback);
+JNIInterceptor.attach("CallStaticShortMethodA", callback);
+JNIInterceptor.attach("CallStaticIntMethod", callback);
+JNIInterceptor.attach("CallStaticIntMethodV", callback);
+JNIInterceptor.attach("CallStaticIntMethodA", callback);
+JNIInterceptor.attach("CallStaticLongMethod", callback);
+JNIInterceptor.attach("CallStaticLongMethodV", callback);
+JNIInterceptor.attach("CallStaticLongMethodA", callback);
+JNIInterceptor.attach("CallStaticFloatMethod", callback);
+JNIInterceptor.attach("CallStaticFloatMethodV", callback);
+JNIInterceptor.attach("CallStaticFloatMethodA", callback);
+JNIInterceptor.attach("CallStaticDoubleMethod", callback);
+JNIInterceptor.attach("CallStaticDoubleMethodV", callback);
+JNIInterceptor.attach("CallStaticDoubleMethodA", callback);
+JNIInterceptor.attach("CallStaticVoidMethod", callback);
+JNIInterceptor.attach("CallStaticVoidMethodV", callback);
+JNIInterceptor.attach("CallStaticVoidMethodA", callback);
+JNIInterceptor.attach("GetStaticFieldID", callback);
+JNIInterceptor.attach("GetStaticObjectField", callback);
+JNIInterceptor.attach("GetStaticBooleanField", callback);
+JNIInterceptor.attach("GetStaticByteField", callback);
+JNIInterceptor.attach("GetStaticCharField", callback);
+JNIInterceptor.attach("GetStaticShortField", callback);
+JNIInterceptor.attach("GetStaticIntField", callback);
+JNIInterceptor.attach("GetStaticLongField", callback);
+JNIInterceptor.attach("GetStaticFloatField", callback);
+JNIInterceptor.attach("GetStaticDoubleField", callback);
+JNIInterceptor.attach("SetStaticObjectField", callback);
+JNIInterceptor.attach("SetStaticBooleanField", callback);
+JNIInterceptor.attach("SetStaticByteField", callback);
+JNIInterceptor.attach("SetStaticCharField", callback);
+JNIInterceptor.attach("SetStaticShortField", callback);
+JNIInterceptor.attach("SetStaticIntField", callback);
+JNIInterceptor.attach("SetStaticLongField", callback);
+JNIInterceptor.attach("SetStaticFloatField", callback);
+JNIInterceptor.attach("SetStaticDoubleField", callback);
+JNIInterceptor.attach("NewString", callback);
+JNIInterceptor.attach("GetStringLength", callback);
+JNIInterceptor.attach("GetStringChars", callback);
+JNIInterceptor.attach("ReleaseStringChars", callback);
+JNIInterceptor.attach("NewStringUTF", callback);
+JNIInterceptor.attach("GetStringUTFLength", callback);
+JNIInterceptor.attach("GetStringUTFChars", callback);
+JNIInterceptor.attach("ReleaseStringUTFChars", callback);
+JNIInterceptor.attach("GetArrayLength", callback);
+JNIInterceptor.attach("NewObjectArray", callback);
+JNIInterceptor.attach("GetObjectArrayElement", callback);
+JNIInterceptor.attach("SetObjectArrayElement", callback);
+JNIInterceptor.attach("NewBooleanArray", callback);
+JNIInterceptor.attach("NewByteArray", callback);
+JNIInterceptor.attach("NewCharArray", callback);
+JNIInterceptor.attach("NewShortArray", callback);
+JNIInterceptor.attach("NewIntArray", callback);
+JNIInterceptor.attach("NewLongArray", callback);
+JNIInterceptor.attach("NewFloatArray", callback);
+JNIInterceptor.attach("NewDoubleArray", callback);
+JNIInterceptor.attach("GetBooleanArrayElements", callback);
+JNIInterceptor.attach("GetByteArrayElements", callback);
+JNIInterceptor.attach("GetCharArrayElements", callback);
+JNIInterceptor.attach("GetShortArrayElements", callback);
+JNIInterceptor.attach("GetIntArrayElements", callback);
+JNIInterceptor.attach("GetLongArrayElements", callback);
+JNIInterceptor.attach("GetFloatArrayElements", callback);
+JNIInterceptor.attach("GetDoubleArrayElements", callback);
+JNIInterceptor.attach("ReleaseBooleanArrayElements", callback);
+JNIInterceptor.attach("ReleaseByteArrayElements", callback);
+JNIInterceptor.attach("ReleaseCharArrayElements", callback);
+JNIInterceptor.attach("ReleaseShortArrayElements", callback);
+JNIInterceptor.attach("ReleaseIntArrayElements", callback);
+JNIInterceptor.attach("ReleaseLongArrayElements", callback);
+JNIInterceptor.attach("ReleaseFloatArrayElements", callback);
+JNIInterceptor.attach("ReleaseDoubleArrayElements", callback);
+JNIInterceptor.attach("GetBooleanArrayRegion", callback);
+JNIInterceptor.attach("GetByteArrayRegion", callback);
+JNIInterceptor.attach("GetCharArrayRegion", callback);
+JNIInterceptor.attach("GetShortArrayRegion", callback);
+JNIInterceptor.attach("GetIntArrayRegion", callback);
+JNIInterceptor.attach("GetLongArrayRegion", callback);
+JNIInterceptor.attach("GetFloatArrayRegion", callback);
+JNIInterceptor.attach("GetDoubleArrayRegion", callback);
+JNIInterceptor.attach("SetBooleanArrayRegion", callback);
+JNIInterceptor.attach("SetByteArrayRegion", callback);
+JNIInterceptor.attach("SetCharArrayRegion", callback);
+JNIInterceptor.attach("SetShortArrayRegion", callback);
+JNIInterceptor.attach("SetIntArrayRegion", callback);
+JNIInterceptor.attach("SetLongArrayRegion", callback);
+JNIInterceptor.attach("SetFloatArrayRegion", callback);
+JNIInterceptor.attach("SetDoubleArrayRegion", callback);
+JNIInterceptor.attach("RegisterNatives", callback);
+JNIInterceptor.attach("UnregisterNatives", callback);
+JNIInterceptor.attach("MonitorEnter", callback);
+JNIInterceptor.attach("MonitorExit", callback);
+JNIInterceptor.attach("GetJavaVM", callback);
+JNIInterceptor.attach("GetStringRegion", callback);
+JNIInterceptor.attach("GetStringUTFRegion", callback);
+JNIInterceptor.attach("GetPrimitiveArrayCritical", callback);
+JNIInterceptor.attach("ReleasePrimitiveArrayCritical", callback);
+JNIInterceptor.attach("GetStringCritical", callback);
+JNIInterceptor.attach("ReleaseStringCritical", callback);
+JNIInterceptor.attach("NewWeakGlobalRef", callback);
+JNIInterceptor.attach("DeleteWeakGlobalRef", callback);
+JNIInterceptor.attach("ExceptionCheck", callback);
+JNIInterceptor.attach("NewDirectByteBuffer", callback);
+JNIInterceptor.attach("GetDirectBufferAddress", callback);
+JNIInterceptor.attach("GetDirectBufferCapacity", callback);
+JNIInterceptor.attach("GetObjectRefType", callback);
 
-            args[JAVA_VM_INDEX] = shadowJavaVM;
-        }
-    });
-}
 
-function interceptJNIFunction(jniFunctionAddr: NativePointer): InvocationListener {
-    return Interceptor.attach(jniFunctionAddr, {
-        onEnter(args): void {
-            if (jniEnvInterceptor === undefined) {
-                return;
-            }
-
-            const threadId = this.threadId;
-            const jniEnv = ptr(args[JNI_ENV_INDEX].toString());
-
-            let shadowJNIEnv = NULL;
-
-            threads.setJNIEnv(threadId, jniEnv);
-
-            if (!jniEnvInterceptor.isInitialised()) {
-                shadowJNIEnv = jniEnvInterceptor.create();
-            } else {
-                shadowJNIEnv = jniEnvInterceptor.get();
-            }
-
-            args[JNI_ENV_INDEX] = shadowJNIEnv;
-        }
-    });
-}
-
-const dlopenRef = Module.findExportByName(null, "dlopen");
-const dlsymRef = Module.findExportByName(null, "dlsym");
-const dlcloseRef = Module.findExportByName(null, "dlclose");
-
-if (dlopenRef !== null && dlsymRef !== null && dlcloseRef !== null) {
-    const HANDLE_INDEX = 0;
-
-    const dlopen = new NativeFunction(dlopenRef, 'pointer', ['pointer', 'int']);
-    Interceptor.replace(dlopen, new NativeCallback((filename, mode): NativeReturnValue => {
-        const path = filename.readCString();
-        const retval = dlopen(filename, mode);
-
-        if (checkLibrary(path)) {
-            trackedLibs[retval.toString()] = true;
-        } else {
-            libBlacklist[retval.toString()] = true;
-        }
-        return retval;
-    }, 'pointer', ['pointer', 'int']));
-
-    const dlsym = new NativeFunction(dlsymRef, "pointer", ["pointer", "pointer"]);
-    Interceptor.attach(dlsym, {
-        onEnter(args): void {
-            const SYMBOL_INDEX = 1;
-
-            this.handle = ptr(args[HANDLE_INDEX].toString());
-
-            if (libBlacklist[this.handle]) {
-                return;
-            }
-
-            this.symbol = args[SYMBOL_INDEX].readCString();
-        },
-        onLeave(retval): void {
-            if (retval.isNull() || libBlacklist[this.handle]) {
-                return;
-            }
-
-            const EMPTY_ARRAY_LEN = 0;
-
-            if (config.includeExport.length > EMPTY_ARRAY_LEN) {
-                const included = config.includeExport.filter(
-                    (i): boolean => this.symbol.includes(i)
-                );
-                if (included.length === EMPTY_ARRAY_LEN) {
-                    return;
-                }
-            }
-            if (config.excludeExport.length > EMPTY_ARRAY_LEN) {
-                const excluded = config.excludeExport.filter(
-                    (e): boolean => this.symbol.includes(e)
-                );
-                if (excluded.length > EMPTY_ARRAY_LEN) {
-                    return;
-                }
-            }
-
-            if (trackedLibs[this.handle] === undefined) {
-                // Android 7 and above miss the initial dlopen call.
-                // Give it another chance in dlsym.
-                const mod = Process.findModuleByAddress(retval);
-                if (mod !== null && checkLibrary(mod.path)) {
-                    trackedLibs[this.handle] = true;
-                }
-            }
-
-            if (trackedLibs[this.handle] !== undefined) {
-                const symbol = this.symbol;
-                if (symbol === "JNI_OnLoad") {
-                    interceptJNIOnLoad(ptr(retval.toString()));
-                } else if (symbol.startsWith("Java_") === true) {
-                    interceptJNIFunction(ptr(retval.toString()));
-                }
-            } else {
-                let name = config.libsToTrack[HANDLE_INDEX];
-
-                if (name !== "*") {
-                    const mod = Process.findModuleByAddress(retval);
-                    if (mod === null) {
-                        return;
-                    }
-                    name = mod.name;
-                }
-
-                if (config.libsToTrack.includes(name) || name === "*") {
-                    interceptJNIFunction(ptr(retval.toString()));
-                }
-            }
-        }
-    });
-
-    const dlclose = new NativeFunction(dlcloseRef, "int", ["pointer"]);
-    Interceptor.attach(dlclose, {
-        onEnter(args): void {
-            const handle = args[HANDLE_INDEX].toString();
-            if (trackedLibs[handle]) {
-                this.handle = handle;
-            }
-        },
-        onLeave(retval): void {
-            if (this.handle !== undefined) {
-                if (retval.isNull()) {
-                    delete trackedLibs[this.handle];
-                }
-            }
-        }
-    });
-}
-
-if (IS_IN_REPL) {
-    console.error("Welcome to jnitrace. Tracing is running...");
-    console.warn("NOTE: the recommended way to run this module is using the " +
-               "python wrapper. It provides nicely formated coloured output " +
-               "in the form of frida-trace. To get jnitrace run " +
-               "'pip install jnitrace' or go to " +
-               "'https://github.com/chame1eon/jnitrace'");
-}

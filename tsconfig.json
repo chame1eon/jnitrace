@@ -1,11 +1,13 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "lib": ["esnext"],
-    "allowJs": true,
-    "noEmit": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true
+    "compilerOptions": {
+      "target": "esnext",
+      "lib": ["esnext"],
+      "allowJs": true,
+      "noEmit": true,
+      "strict": true,
+      "esModuleInterop": true,
+      "resolveJsonModule": true,
+      "moduleResolution": "node"
+    }
   }
-}
+  

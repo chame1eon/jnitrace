@@ -62,6 +62,26 @@ instructions for installing frida have been followed, the following command will
 
 `adb shell /data/local/tmp/frida-server`
 
+## API:
+The engine that powers jnitrace is available as a separate project. That project allows you to import jnitrace to track individual JNI API calls, in a method familiar to using the Frida `Interceptor` to attach to functions and addresses.
+
+```javascript
+import { JNIInterceptor } from "jnitrace-engine";
+
+JNIInterceptor.attach("FindClass", {
+    onEnter(args) {
+        console.log("FindClass method called");
+        this.className = Memory.readCString(args[1]);
+    },
+    onLeave(retval) {
+        console.log("\tLoading Class:", this.className);
+        console.log("\tClass ID:", retval.get());
+    }
+});
+
+```
+
+More information: https://github.com/chame1eon/jnitrace-engine
 
 ## Building:
 

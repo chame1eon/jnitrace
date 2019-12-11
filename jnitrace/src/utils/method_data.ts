@@ -1,6 +1,6 @@
-import { JNIMethod } from "../jni/jni_method.js";
+import { JNIMethod } from "C:\\Users\\david\\Downloads\\jnitrace-engine";
 
-import { JavaMethod } from "./java_method.js";
+import { JavaMethod } from "C:\\Users\\david\\Downloads\\jnitrace-engine";
 
 class MethodData {
     private readonly _method: JNIMethod;

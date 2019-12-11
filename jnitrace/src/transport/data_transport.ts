@@ -1,9 +1,6 @@
-import { JNIThreadManager } from "../jni/jni_thread_manager";
-
 import { Types }  from "../utils/types";
 import { MethodData } from "../utils/method_data";
-import { Config } from "../utils/config";
-import { JNIMethod } from "../jni/jni_method";
+import { JNIMethod, Config } from "jnitrace-engine";
 
 const JNI_OK = 0;
 const TYPE_NAME_START = 0;
@@ -122,32 +119,42 @@ class RecordJSONContainer {
 /* eslint-enable @typescript-eslint/camelcase */
 
 class DataTransport {
-    private readonly threads: JNIThreadManager;
     private readonly start: number;
     private readonly byteArraySizes: { [id: string]: number };
     private readonly jobjects: { [id: string]: string };
     private readonly jfieldIDs: { [id: string]: string };
     private readonly jmethodIDs: { [id: string]: string };
+    private include: string[];
+    private exclude: string[];
 
-    public constructor(threads: JNIThreadManager) {
-        this.threads = threads;
+    public constructor() {
         this.start = Date.now();
         this.byteArraySizes = {};
         this.jobjects = {};
         this.jfieldIDs = {};
         this.jmethodIDs = {};
+        this.include = [];
+        this.exclude = [];
+    }
+
+    public setIncludeFilter(include: string[]) {
+        this.include = include;
+    }
+
+    public setExcludeFilter(exclude: string[]) {
+        this.exclude = exclude;
     }
 
     public reportJavaVMCall(
         data: MethodData,
-        context: CpuContext | NativePointer[]
+        context: NativePointer[] | undefined
     ): void {
         const config = Config.getInstance();
         const outputArgs: DataJSONContainer[] = [];
         const outputRet: DataJSONContainer = new DataJSONContainer(
             data.ret, null
         );
-        const javaVM = this.threads.getJavaVM();
+        const javaVM = data.getArgAsPtr(0);
 
         if (!config.vm || this.shouldIgnoreMethod(data)) {
             return;
@@ -169,14 +176,14 @@ class DataTransport {
 
     public reportJNIEnvCall(
         data: MethodData,
-        context: CpuContext | NativePointer[]
+        context: NativePointer[] | undefined
     ): void {
         const RET_INDEX = 0;
         const config = Config.getInstance();
         const threadId = Process.getCurrentThreadId();
         const outputArgs: DataJSONContainer[] = [];
         const outputRet: DataJSONContainer[] = [];
-        const jniEnv = this.threads.getJNIEnv(threadId);
+        const jniEnv = data.getArgAsPtr(0);
 
         this.updateState(data);
 
@@ -332,20 +339,18 @@ class DataTransport {
 
     private shouldIgnoreMethod(data: MethodData): boolean {
         const config = Config.getInstance();
-        const include = config.include;
-        const exclude = config.exclude;
         const name = data.method.name;
 
-        if (include.length > EMPTY_ARRAY_LEN) {
-            const included = include.filter(
+        if (this.include.length > EMPTY_ARRAY_LEN) {
+            const included = this.include.filter(
                 (i): boolean => new RegExp(i).test(name)
             );
             if (included.length === EMPTY_ARRAY_LEN) {
                 return true;
             }
         }
-        if (exclude.length > EMPTY_ARRAY_LEN) {
-            const excluded = exclude.filter(
+        if (this.exclude.length > EMPTY_ARRAY_LEN) {
+            const excluded = this.exclude.filter(
                 (e): boolean => new RegExp(e).test(name)
             );
             if (excluded.length > EMPTY_ARRAY_LEN) {
@@ -828,12 +833,11 @@ class DataTransport {
                                 Types.sizeOf("pointer") +
                                 JINT_SIZE;
 
-        const threadId = Process.getCurrentThreadId();
         const env = data.args[ENV_ARG_INDEX];
         let envData = null;
 
         if (data.ret === JNI_OK) {
-            envData = this.threads.getJNIEnv(threadId);
+            envData = data.getArgAsPtr(ENV_ARG_INDEX).readPointer();
         } else if (!data.getArgAsPtr(ENV_ARG_INDEX).isNull()) {
             envData = data.getArgAsPtr(ENV_ARG_INDEX).readPointer();
         }
@@ -871,7 +875,7 @@ class DataTransport {
         let binData = null;
 
         if (data.ret === JNI_OK) {
-            binData = this.threads.getJNIEnv(threadId);
+            binData = data.getArgAsPtr(ENV_ARG_INDEX).readPointer();
         } else if (!data.getArgAsPtr(ENV_ARG_INDEX).isNull()) {
             binData = data.getArgAsPtr(ENV_ARG_INDEX).readPointer();
         }
@@ -928,13 +932,13 @@ class DataTransport {
         args: DataJSONContainer[],
         ret: DataJSONContainer,
         sendData: ArrayBuffer | null,
-        context: CpuContext | NativePointer[]
+        context: NativePointer[] | undefined
     ): void {
         const config = Config.getInstance();
         const jParams = data.jParams;
         let backtrace = undefined;
 
-        if (config.backtrace !== "none") {
+        if (context !== undefined) {
             backtrace = this.createBacktrace(context, config.backtrace);
         }
 
