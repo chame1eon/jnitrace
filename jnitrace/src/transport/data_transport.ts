@@ -7,6 +7,8 @@ const TYPE_NAME_START = 0;
 const TYPE_NAME_END = -1;
 const SKIP_ENV_INDEX = 1;
 const EMPTY_ARRAY_LEN = 0;
+const JAVA_VM_INDEX = 0;
+const JNI_ENV_INDEX = 0;
 
 
 class NativeMethodJSONContainer {
@@ -137,11 +139,11 @@ class DataTransport {
         this.exclude = [];
     }
 
-    public setIncludeFilter(include: string[]) {
+    public setIncludeFilter(include: string[]): void {
         this.include = include;
     }
 
-    public setExcludeFilter(exclude: string[]) {
+    public setExcludeFilter(exclude: string[]): void {
         this.exclude = exclude;
     }
 
@@ -154,7 +156,7 @@ class DataTransport {
         const outputRet: DataJSONContainer = new DataJSONContainer(
             data.ret, null
         );
-        const javaVM = data.getArgAsPtr(0);
+        const javaVM = data.getArgAsPtr(JAVA_VM_INDEX);
 
         if (!config.vm || this.shouldIgnoreMethod(data)) {
             return;
@@ -180,10 +182,9 @@ class DataTransport {
     ): void {
         const RET_INDEX = 0;
         const config = Config.getInstance();
-        const threadId = Process.getCurrentThreadId();
         const outputArgs: DataJSONContainer[] = [];
         const outputRet: DataJSONContainer[] = [];
-        const jniEnv = data.getArgAsPtr(0);
+        const jniEnv = data.getArgAsPtr(JNI_ENV_INDEX);
 
         this.updateState(data);
 
@@ -338,7 +339,6 @@ class DataTransport {
     }
 
     private shouldIgnoreMethod(data: MethodData): boolean {
-        const config = Config.getInstance();
         const name = data.method.name;
 
         if (this.include.length > EMPTY_ARRAY_LEN) {
@@ -870,7 +870,6 @@ class DataTransport {
         const ENV_ARG_INDEX = 1;
         const VERSION_ARG_INDEX = 2;
 
-        const threadId = Process.getCurrentThreadId();
         const env: NativeArgumentValue = data.args[ENV_ARG_INDEX];
         let binData = null;
 

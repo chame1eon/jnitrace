@@ -9,10 +9,10 @@ import { DataTransport } from "./transport/data_transport";
 
 const IS_IN_REPL = true;
 const transport = new DataTransport();
-let config : Config | null = null;
+let config: Config | null = null;
 
 JNILibraryWatcher.setCallback({
-    onLoaded(path : string) {
+    onLoaded(path: string): void {
         if (!IS_IN_REPL && !Config.initialised()) {
             const op = recv("config", (message): void => {
                 const builder = new ConfigBuilder();
@@ -35,7 +35,7 @@ JNILibraryWatcher.setCallback({
             return;
         }
 
-        config.libraries.forEach((element : string) => {
+        config.libraries.forEach((element: string): void => {
             if (path.includes(element)) {
                 send({
                     type: "tracked_library",
@@ -46,17 +46,19 @@ JNILibraryWatcher.setCallback({
     }
 });
 
-const callback : JNIInvocationCallback = {
-    onEnter(args : NativeArgumentValue[]) {
+const callback: JNIInvocationCallback = {
+    onEnter(args: NativeArgumentValue[]): void {
         this.args = args;
     },
-    onLeave(retval : JNINativeReturnValue) {
-        const data = new MethodData(this.methodDef, this.args, retval.get(), this.javaMethod);
+    onLeave(retval: JNINativeReturnValue): void {
+        const data = new MethodData(
+            this.methodDef, this.args, retval.get(), this.javaMethod
+        );
         transport.reportJNIEnvCall(
             data, this.backtrace
         );
     }
-}
+};
 
 JNIInterceptor.attach("DestroyJavaVM", callback);
 JNIInterceptor.attach("AttachCurrentThread", callback);
