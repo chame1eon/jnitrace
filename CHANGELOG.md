@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.0.1
+- Updated version of jnitrace-engine to get new bug fixes
+
 ## 3.0.0
 - Extracted the engine in jnitrace to a new project so that the API can be used by developers
 

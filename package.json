@@ -1,6 +1,6 @@
 {
   "name": "jnitrace",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A tool for tracing use of the JNI in Android apps",
   "private": true,
   "main": "jnitrace/src/main.js",
@@ -11,7 +11,7 @@
     "lint": "eslint jnitrace/src/**/*.ts"
   },
   "dependencies": {
-    "jnitrace-engine": "^1.0.1"
+    "jnitrace-engine": "^1.0.2"
   },
   "devDependencies": {
     "@types/frida-gum": "^13.0.0",
