@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.0.3
+- Updated version of jnitrace-engine to get new bug fixes
+
 ## 3.0.2
 - Updated version of jnitrace-engine to get new bug fixes
 
