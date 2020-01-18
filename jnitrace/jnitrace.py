@@ -327,7 +327,7 @@ class TraceFormatter:
 
     @classmethod
     def _is_error(cls, message):
-        if message["type"] != "send":
+        if message["type"] != "send" or message["payload"]["type"] == "error":
             print("{}ERROR: {}{}".format(
                 Fore.RED,
                 str(message),
