@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 3.0.6
+- Bumped versions of all JavaScript dependencies to latest and fixed linter errors
+- Bug fix where all JavaVM calls were being labeled as JNIEnv calls
+
 ## 3.0.5
 - Bumped version of acorn to 7.1.1 to fix vulnerability CVE-2020-7598
 

@@ -3,11 +3,11 @@ import { Types } from "./types";
 const SEMI_COLON_OFFSET = 1;
 
 class JavaMethod {
-    private readonly signature: string;
+    private readonly __: string;
     private readonly _params: string[];
     private readonly _ret: string;
 
-    public constructor(signature: string) {
+    public constructor (signature: string) {
         const primitiveTypes = ["B", "S", "I", "J", "F", "D", "C", "Z", "V"];
         let isArray = false;
         let isRet = false;
@@ -40,7 +40,7 @@ class JavaMethod {
                 i = end - SEMI_COLON_OFFSET;
             }
 
-            //TODO DELETE
+            // ?
             if (isArray) {
                 jtype = "[" + jtype;
             }
@@ -54,18 +54,18 @@ class JavaMethod {
             isArray = false;
         }
 
-        this.signature = signature;
+        this.__ = signature;
         this._params = jParamTypes;
         this._ret = jRetType;
     }
 
-    public get params(): string[] {
+    public get params (): string[] {
         return this._params;
     }
 
-    public get nativeParams(): string[] {
+    public get nativeParams (): string[] {
         const nativeParams: string[] = [];
-        this._params.forEach((p): void => {
+        this._params.forEach((p: string): void => {
             const nativeJType = Types.convertJTypeToNativeJType(p);
 
             nativeParams.push(nativeJType);
@@ -73,9 +73,9 @@ class JavaMethod {
         return nativeParams;
     }
 
-    public get fridaParams(): string[] {
+    public get fridaParams (): string[] {
         const fridaParams: string[] = [];
-        this._params.forEach((p): void => {
+        this._params.forEach((p: string): void => {
             const nativeJType = Types.convertJTypeToNativeJType(p);
             const fridaType = Types.convertNativeJTypeToFridaType(nativeJType);
 
@@ -84,14 +84,14 @@ class JavaMethod {
         return fridaParams;
     }
 
-    public get ret(): string {
+    public get ret (): string {
         return this._ret;
     }
 
-    public get fridaRet(): string {
+    public get fridaRet (): string {
         const jTypeRet = Types.convertJTypeToNativeJType(this._ret);
         return Types.convertNativeJTypeToFridaType(jTypeRet);
     }
-};
+}
 
 export { JavaMethod };

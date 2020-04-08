@@ -12,20 +12,20 @@ const JNI_ENV_INDEX = 0;
 
 
 class NativeMethodJSONContainer {
-    public readonly name: { [id: string]: string | null };
-    public readonly sig: { [id: string]: string | null };
-    public readonly addr: { [id: string]: string };
+    public readonly name: { [id: string]: string | null } = {};
+    public readonly sig: { [id: string]: string | null } = {};
+    public readonly addr: { [id: string]: string | null } = {};
 
-    public constructor(
+    public constructor (
         name: { [id: string]: string | null },
         sig: { [id: string]: string | null },
-        addr: { [id: string]: string }
+        addr: { [id: string]: string | null }
     ) {
         this.name = name;
         this.sig = sig;
         this.addr = addr;
     }
-};
+}
 
 /* eslint-disable @typescript-eslint/camelcase */
 class DataJSONContainer {
@@ -36,7 +36,7 @@ class DataJSONContainer {
     public readonly has_data: boolean | undefined;
     private metadata: string | undefined;
 
-    public constructor(
+    public constructor (
         value: NativeArgumentValue | NativeReturnValue,
         data: ArrayBuffer | NativeArgumentValue | NativeReturnValue
         | string | NativeMethodJSONContainer[] | null,
@@ -60,21 +60,21 @@ class DataJSONContainer {
         }
     }
 
-    public getMetadata(): string | undefined {
+    public getMetadata (): string | undefined {
         return this.metadata;
     }
 
-    public setMetadata(metadata: string | undefined): void {
+    public setMetadata (metadata: string | undefined): void {
         this.metadata = metadata;
     }
-};
+}
 
 class BacktraceJSONContainer {
     public readonly address: NativePointer;
     public readonly module: Module | null;
     public readonly symbol: DebugSymbol | null;
 
-    public constructor(
+    public constructor (
         address: NativePointer,
         module: Module | null,
         symbol: DebugSymbol | null
@@ -83,7 +83,7 @@ class BacktraceJSONContainer {
         this.module = module;
         this.symbol = symbol;
     }
-};
+}
 
 class RecordJSONContainer {
     public readonly type: string;
@@ -97,7 +97,7 @@ class RecordJSONContainer {
     public readonly java_params: string[] | undefined;
     public readonly backtrace: BacktraceJSONContainer[] | undefined;
 
-    public constructor(
+    public constructor (
         callType: string,
         method: JNIMethod,
         args: DataJSONContainer[],
@@ -117,37 +117,37 @@ class RecordJSONContainer {
         this.java_params = javaParams;
         this.backtrace = backtrace;
     }
-};
+}
 /* eslint-enable @typescript-eslint/camelcase */
 
 class DataTransport {
     private readonly start: number;
-    private readonly byteArraySizes: { [id: string]: number };
-    private readonly jobjects: { [id: string]: string };
-    private readonly jfieldIDs: { [id: string]: string };
-    private readonly jmethodIDs: { [id: string]: string };
+    private readonly byteArraySizes: Map<string, number>;
+    private readonly jobjects: Map<string, string>;
+    private readonly jfieldIDs: Map<string, string>;
+    private readonly jmethodIDs: Map<string, string>;
     private include: string[];
     private exclude: string[];
 
-    public constructor() {
+    public constructor () {
         this.start = Date.now();
-        this.byteArraySizes = {};
-        this.jobjects = {};
-        this.jfieldIDs = {};
-        this.jmethodIDs = {};
+        this.byteArraySizes = new Map<string, number>();
+        this.jobjects = new Map<string, string>();
+        this.jfieldIDs = new Map<string, string>();
+        this.jmethodIDs = new Map<string, string>();
         this.include = [];
         this.exclude = [];
     }
 
-    public setIncludeFilter(include: string[]): void {
+    public setIncludeFilter (include: string[]): void {
         this.include = include;
     }
 
-    public setExcludeFilter(exclude: string[]): void {
+    public setExcludeFilter (exclude: string[]): void {
         this.exclude = exclude;
     }
 
-    public reportJavaVMCall(
+    public reportJavaVMCall (
         data: MethodData,
         context: NativePointer[] | undefined
     ): void {
@@ -176,7 +176,7 @@ class DataTransport {
         );
     }
 
-    public reportJNIEnvCall(
+    public reportJNIEnvCall (
         data: MethodData,
         context: NativePointer[] | undefined
     ): void {
@@ -216,74 +216,74 @@ class DataTransport {
         );
     }
 
-    private updateArrayLengths(data: MethodData, isGet: boolean): void {
+    private updateArrayLengths (data: MethodData, isGet: boolean): void {
         const JARRAY_INDEX = 1;
 
         if (isGet) {
-            this.byteArraySizes[data.args[JARRAY_INDEX].toString()]
-                = data.ret as number;
+            this.byteArraySizes.set(data.args[JARRAY_INDEX].toString(),
+                data.ret as number);
         } else {    //isSet
-            this.byteArraySizes[data.ret.toString()]
-                = data.args[JARRAY_INDEX] as number;
+            this.byteArraySizes.set(data.ret.toString(),
+                data.args[JARRAY_INDEX] as number);
         }
     }
 
-    private updateMethodIDs(data: MethodData): void {
+    private updateMethodIDs (data: MethodData): void {
         const NAME_INDEX = 2;
         const SIG_INDEX = 3;
         const methodID = data.ret.toString();
         const name = (data.args[NAME_INDEX] as NativePointer).readCString();
         const sig = (data.args[SIG_INDEX] as NativePointer).readCString();
         if (name !== null && sig !== null) {
-            this.jmethodIDs[methodID] = name + sig;
+            this.jmethodIDs.set(methodID, name + sig);
         }
     }
 
-    private updateFieldIDs(data: MethodData): void {
+    private updateFieldIDs (data: MethodData): void {
         const NAME_INDEX = 2;
         const SIG_INDEX = 3;
         const fieldID = data.ret.toString();
         const name = (data.args[NAME_INDEX] as NativePointer).readCString();
         const sig = (data.args[SIG_INDEX] as NativePointer).readCString();
         if (name !== null && sig !== null) {
-            this.jfieldIDs[fieldID] = name + ":" + sig;
+            this.jfieldIDs.set(fieldID, name + ":" + sig);
         }
     }
 
-    private updateClassIDs(data: MethodData): void {
+    private updateClassIDs (data: MethodData): void {
         const NAME_INDEX = 1;
         const jclass = data.ret.toString();
         const name = (data.args[NAME_INDEX] as NativePointer).readCString();
         if (name !== null) {
-            this.jobjects[jclass] = name;
+            this.jobjects.set(jclass, name);
 
         }
     }
 
-    private updateObjectIDsFromRefs(data: MethodData, isCreate: boolean): void {
+    private updateObjectIDsFromRefs (data: MethodData, isCreate: boolean): void {
         const OBJECT_INDEX = 1;
         if (isCreate) {
             const newRef = data.ret.toString();
             const oldRef = data.args[OBJECT_INDEX].toString();
-            if (this.jobjects[oldRef] !== undefined) {
-                this.jobjects[newRef] = this.jobjects[oldRef];
+            if (this.jobjects.has(oldRef)) {
+                this.jobjects.set(newRef, this.jobjects.get(oldRef) as string);
             }
         } else {
             const jobject = data.args[OBJECT_INDEX].toString();
-            delete this.jobjects[jobject];
+            this.jobjects.delete(jobject);
         }
     }
 
-    private updateObjectIDsFromClass(data: MethodData): void {
+    private updateObjectIDsFromClass (data: MethodData): void {
         const OBJECT_INDEX = 1;
         const jobject = data.args[OBJECT_INDEX].toString();
         const jclass = data.ret.toString();
-        if (this.jobjects[jobject] !== undefined) {
-            this.jobjects[jclass] = jobject;
+        if (this.jobjects.has(jobject)) {
+            this.jobjects.set(jclass, jobject);
         }
     }
 
-    private updateObjectIDsFromCall(data: MethodData): void {
+    private updateObjectIDsFromCall (data: MethodData): void {
         const TYPE_START = 1;
         const TYPE_END = -1;
         const LAST_CALL_INDEX = 3;
@@ -296,25 +296,25 @@ class DataTransport {
             }
             for (let i = start; i < data.args.length; i++) {
                 const arg = data.args[i].toString();
-                if (this.jobjects[arg] !== undefined) {
+                if (this.jobjects.has(arg)) {
                     // skip where we have an existing class name
                     continue;
                 }
                 const nativeJType = data.javaMethod.nativeParams[i - start];
                 if (Types.isComplexObjectType(nativeJType)) {
-                    this.jobjects[arg] = nativeJType.slice(TYPE_START, TYPE_END);
+                    this.jobjects.set(arg, nativeJType.slice(TYPE_START, TYPE_END));
                 }
             }
             if (data.method.name.includes("Object")) {
-                if (this.jobjects[data.ret.toString()] === undefined) {
-                    this.jobjects[data.ret.toString()]
-                        = data.javaMethod.ret.slice(TYPE_START, TYPE_END);
+                if (!this.jobjects.has(data.ret.toString())) {
+                    this.jobjects.set(data.ret.toString(),
+                        data.javaMethod.ret.slice(TYPE_START, TYPE_END));
                 }
             }
         }
     }
 
-    private updateState(data: MethodData): void {
+    private updateState (data: MethodData): void {
         const name = data.method.name;
 
         if (name === "GetArrayLength") {
@@ -338,12 +338,12 @@ class DataTransport {
         }
     }
 
-    private shouldIgnoreMethod(data: MethodData): boolean {
+    private shouldIgnoreMethod (data: MethodData): boolean {
         const name = data.method.name;
 
         if (this.include.length > EMPTY_ARRAY_LEN) {
             const included = this.include.filter(
-                (i): boolean => new RegExp(i).test(name)
+                (i: string): boolean => new RegExp(i).test(name)
             );
             if (included.length === EMPTY_ARRAY_LEN) {
                 return true;
@@ -351,7 +351,7 @@ class DataTransport {
         }
         if (this.exclude.length > EMPTY_ARRAY_LEN) {
             const excluded = this.exclude.filter(
-                (e): boolean => new RegExp(e).test(name)
+                (e: string): boolean => new RegExp(e).test(name)
             );
             if (excluded.length > EMPTY_ARRAY_LEN) {
                 return true;
@@ -361,27 +361,27 @@ class DataTransport {
         return false;
     }
 
-    private enrichSingleItem(
+    private enrichSingleItem (
         type: string,
         key: string,
         item: DataJSONContainer
     ): void {
         if (Types.isComplexObjectType(type)) {
-            if (this.jobjects[key] !== undefined) {
-                item.setMetadata(this.jobjects[key]);
+            if (this.jobjects.has(key)) {
+                item.setMetadata(this.jobjects.get(key));
             }
         } else if (type === "jmethodID") {
-            if (this.jmethodIDs[key] !== undefined) {
-                item.setMetadata(this.jmethodIDs[key]);
+            if (this.jmethodIDs.has(key)) {
+                item.setMetadata(this.jmethodIDs.get(key));
             }
         } else if (type === "jfieldID") {
-            if (this.jfieldIDs[key] !== undefined) {
-                item.setMetadata(this.jfieldIDs[key]);
+            if (this.jfieldIDs.has(key)) {
+                item.setMetadata(this.jfieldIDs.get(key));
             }
         }
     }
 
-    private enrichTraceData(data: MethodData,
+    private enrichTraceData (data: MethodData,
         args: DataJSONContainer[],
         ret: DataJSONContainer[]
     ): void {
@@ -422,7 +422,7 @@ class DataTransport {
         }
     }
 
-    private addDefinceClassArgs(
+    private addDefineClassArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -448,7 +448,7 @@ class DataTransport {
         return classData;
     }
 
-    private addFindClassArgs(
+    private addFindClassArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -459,7 +459,7 @@ class DataTransport {
         );
     }
 
-    private addThrowNewArgs(
+    private addThrowNewArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -473,7 +473,7 @@ class DataTransport {
         );
     }
 
-    private addFatalErrorArgs(
+    private addFatalErrorArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -484,7 +484,7 @@ class DataTransport {
         );
     }
 
-    private addGetGenericIDArgs(
+    private addGetGenericIDArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -500,7 +500,7 @@ class DataTransport {
         outputArgs.push(new DataJSONContainer(data.args[SIG_INDEX], sig));
     }
 
-    private addNewStringArgs(
+    private addNewStringArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -519,7 +519,7 @@ class DataTransport {
         return unicode;
     }
 
-    private addGetGenericBufferArgs(
+    private addGetGenericBufferArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -542,7 +542,7 @@ class DataTransport {
         }
     }
 
-    private addReleaseCharsArgs(
+    private addReleaseCharsArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -557,7 +557,7 @@ class DataTransport {
         );
     }
 
-    private addGetGenericBufferRegionArgs(
+    private addGetGenericBufferRegionArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -587,7 +587,7 @@ class DataTransport {
         return region;
     }
 
-    private addNewStringUTFArgs(
+    private addNewStringUTFArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -598,7 +598,7 @@ class DataTransport {
         );
     }
 
-    private addRegisterNativesArgs(
+    private addRegisterNativesArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -633,15 +633,15 @@ class DataTransport {
             natives.push(
                 new NativeMethodJSONContainer(
                     {
-                        value: namePtr.toString(),
-                        data: name
+                        "value": namePtr.toString(),
+                        "data": name
                     },
                     {
-                        value: sigPtr.toString(),
-                        data: sig
+                        "value": sigPtr.toString(),
+                        "data": sig
                     },
                     {
-                        value: addr.toString()
+                        "value": addr.toString()
                     }
                 )
             );
@@ -652,7 +652,7 @@ class DataTransport {
         outputArgs.push(new DataJSONContainer(data.args[SIZE_INDEX], null));
     }
 
-    private addGetJavaVMArgs(
+    private addGetJavaVMArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -666,7 +666,7 @@ class DataTransport {
         );
     }
 
-    private addReleaseStringCriticalArgs(
+    private addReleaseStringCriticalArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -684,7 +684,7 @@ class DataTransport {
         );
     }
 
-    private addReleaseElementsArgs(
+    private addReleaseElementsArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -698,7 +698,7 @@ class DataTransport {
         const size = Types.sizeOf(nType);
         const buf = data.getArgAsPtr(BUFFER_PTR_INDEX);
         const byteArray = data.getArgAsPtr(BYTE_ARRAY_INDEX).toString();
-        const len = this.byteArraySizes[byteArray];
+        const len = this.byteArraySizes.get(byteArray);
 
         let region = null;
         if (len !== undefined) {
@@ -721,7 +721,7 @@ class DataTransport {
         return region;
     }
 
-    private addGenericArgs(
+    private addGenericArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -732,14 +732,14 @@ class DataTransport {
         }
     }
 
-    private addJNIEnvArgs(
+    private addJNIEnvArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
         const name = data.method.name;
 
         if (name === "DefineClass") {
-            return this.addDefinceClassArgs(data, outputArgs);
+            return this.addDefineClassArgs(data, outputArgs);
         } else if (name === "FindClass") {
             this.addFindClassArgs(data, outputArgs);
         } else if (name === "ThrowNew") {
@@ -776,7 +776,7 @@ class DataTransport {
         return null;
     }
 
-    private addJNIEnvRet(
+    private addJNIEnvRet (
         data: MethodData,
         outputRet: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -788,7 +788,7 @@ class DataTransport {
           name.startsWith("Get") && name.endsWith("ArrayCritical")) {
             const key = data.args[ENVPTR_ARG_INDEX].toString();
 
-            if (this.byteArraySizes[key] !== undefined) {
+            if (this.byteArraySizes.has(key)) {
                 const type = data.method.ret.slice(
                     TYPE_NAME_START,
                     TYPE_NAME_END
@@ -796,9 +796,9 @@ class DataTransport {
                 const nType = Types.convertNativeJTypeToFridaType(type);
                 const size = Types.sizeOf(nType);
                 const buf = data.ret as NativePointer;
-                const len = this.byteArraySizes[
+                const len = this.byteArraySizes.get(
                     data.getArgAsPtr(ENVPTR_ARG_INDEX).toString()
-                ];
+                ) as number;
 
                 outputRet.push(
                     new DataJSONContainer(
@@ -822,7 +822,7 @@ class DataTransport {
         return null;
     }
 
-    private addAttachCurrentThreadArgs(
+    private addAttachCurrentThreadArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -863,7 +863,7 @@ class DataTransport {
         return null;
     }
 
-    private addGetEnvArgs(
+    private addGetEnvArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): void {
@@ -885,7 +885,7 @@ class DataTransport {
         ));
     }
 
-    private addJavaVMArgs(
+    private addJavaVMArgs (
         data: MethodData,
         outputArgs: DataJSONContainer[]
     ): ArrayBuffer | null {
@@ -900,7 +900,7 @@ class DataTransport {
         return null;
     }
 
-    private createBacktrace(
+    private createBacktrace (
         context: CpuContext | NativePointer[],
         type: string
     ): BacktraceJSONContainer[] {
@@ -916,7 +916,7 @@ class DataTransport {
             bt = Thread.backtrace(context as CpuContext, backtraceType);
         }
 
-        return bt.map((addr): BacktraceJSONContainer => {
+        return bt.map((addr: NativePointer): BacktraceJSONContainer => {
             return new BacktraceJSONContainer(
                 addr,
                 Process.findModuleByAddress(addr),
@@ -925,7 +925,7 @@ class DataTransport {
         });
     }
 
-    private sendToHost(
+    private sendToHost (
         type: string,
         data: MethodData,
         args: DataJSONContainer[],
@@ -954,6 +954,6 @@ class DataTransport {
 
         send(output, sendData);
     }
-};
+}
 
 export { DataTransport };

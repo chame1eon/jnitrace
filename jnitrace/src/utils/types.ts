@@ -3,16 +3,16 @@ const TYPE_SIZE_64_BIT = 8;
 const TYPE_SIZE_CHAR = 1;
 
 const Types = {
-    isComplexObjectType(type: string): boolean {
+    isComplexObjectType (type: string): boolean {
         const JOBJECT = [
             "jobject",
             "jclass",
-            "jweak"  
+            "jweak"
         ];
 
         return JOBJECT.includes(type);
     },
-    sizeOf(type: string): number {
+    sizeOf (type: string): number {
         if (type === "double" || type === "float" || type === "int64") {
             return TYPE_SIZE_64_BIT;
         } else if (type === "char") {
@@ -21,7 +21,7 @@ const Types = {
             return Process.pointerSize;
         }
     },
-    convertNativeJTypeToFridaType(jtype: string): string {
+    convertNativeJTypeToFridaType (jtype: string): string {
         if (jtype.endsWith("*")) {
             return "pointer";
         }
@@ -88,7 +88,7 @@ const Types = {
 
         return jtype;
     },
-    convertJTypeToNativeJType(jtype: string): string {
+    convertJTypeToNativeJType (jtype: string): string {
         let result = "";
         let isArray = false;
 
@@ -116,7 +116,7 @@ const Types = {
         } else if (jtype.startsWith("L")) {
             if (jtype === "Ljava/lang/String;") {
                 result += "jstring";
-            } else if(jtype === "Ljava/lang/Class;") {
+            } else if (jtype === "Ljava/lang/Class;") {
                 result += "jclass";
             } else {
                 result += "jobject";

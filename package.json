@@ -1,6 +1,6 @@
 {
   "name": "jnitrace",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "A tool for tracing use of the JNI in Android apps",
   "private": true,
   "main": "jnitrace/src/main.js",
@@ -11,19 +11,19 @@
     "lint": "eslint jnitrace/src/**/*.ts"
   },
   "dependencies": {
-    "jnitrace-engine": "^1.0.6"
+    "jnitrace-engine": "^1.0.8"
   },
   "devDependencies": {
-    "@babel/core": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.8.3",
-    "@babel/preset-env": "^7.8.3",
-    "@babel/runtime-corejs2": "^7.8.3",
-    "@types/frida-gum": "^13.0.0",
-    "@types/node": "^12.12.25",
-    "@typescript-eslint/eslint-plugin": "^1.13.0",
-    "@typescript-eslint/parser": "^1.13.0",
+    "@babel/core": "^7.9.0",
+    "@babel/plugin-transform-runtime": "^7.9.0",
+    "@babel/preset-env": "^7.9.0",
+    "@babel/runtime-corejs2": "^7.9.2",
+    "@types/frida-gum": "^15.2.0",
+    "@types/node": "^13.11.0",
+    "@typescript-eslint/eslint-plugin": "^2.27.0",
+    "@typescript-eslint/parser": "^2.27.0",
     "eslint": "^6.8.0",
     "eslint-utils": "^2.0.0",
-    "frida-compile": "9.0.4"
+    "frida-compile": "9.3.0"
   }
 }

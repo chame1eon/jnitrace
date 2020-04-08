@@ -9,7 +9,7 @@ class MethodData {
     private readonly _jparams: string[];
     private readonly _ret: NativeReturnValue;
 
-    public constructor(
+    public constructor (
         method: JNIMethod,
         args: NativeArgumentValue[],
         ret: NativeReturnValue,
@@ -24,35 +24,35 @@ class MethodData {
         } else {
             this._jparams = jmethod.nativeParams;
         }
-    };
+    }
 
-    public get method(): JNIMethod {
+    public get method (): JNIMethod {
         return this._method;
     }
 
-    public get javaMethod(): JavaMethod | undefined {
+    public get javaMethod (): JavaMethod | undefined {
         return this._jmethod;
     }
 
-    public get args(): NativeArgumentValue[] {
+    public get args (): NativeArgumentValue[] {
         return this._args;
-    };
+    }
 
-    public getArgAsPtr(i: number): NativePointer {
+    public getArgAsPtr (i: number): NativePointer {
         return this._args[i] as NativePointer;
     }
 
-    public getArgAsNum(i: number): number {
+    public getArgAsNum (i: number): number {
         return this._args[i] as number;
     }
 
-    public get jParams(): string[] {
+    public get jParams (): string[] {
         return this._jparams;
-    };
+    }
 
-    public get ret(): NativeReturnValue {
+    public get ret (): NativeReturnValue {
         return this._ret;
-    };
-};
+    }
+}
 
 export { MethodData };
