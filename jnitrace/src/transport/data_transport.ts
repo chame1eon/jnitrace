@@ -327,9 +327,9 @@ class DataTransport {
             this.updateFieldIDs(data);
         } else if (["FindClass", "DefineClass"].includes(name)) {
             this.updateClassIDs(data);
-        } else if (name.startsWith("New") && name.endsWith("GlobalRef")) {
+        } else if (name.startsWith("New") && name.endsWith("Ref")) {
             this.updateObjectIDsFromRefs(data, true);
-        } else if (name.startsWith("Delete") && name.endsWith("GlobalRef")) {
+        } else if (name.startsWith("Delete") && name.endsWith("Ref")) {
             this.updateObjectIDsFromRefs(data, false);
         } else if (name === "GetObjectClass") {
             this.updateObjectIDsFromClass(data);

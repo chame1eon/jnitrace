@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.0.7
+- Fixed a bug where local JNI references were not being deleted. The result was reuse by the runtime of reference values led to other arguments/return values being incorrectly named
+
 ## 3.0.6
 - Bumped versions of all JavaScript dependencies to latest and fixed linter errors
 - Bug fix where all JavaVM calls were being labeled as JNIEnv calls
