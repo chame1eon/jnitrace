@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.0.8
+- Changed the required version of Frida in the setup.py file to be 12.5.0
+
 ## 3.0.7
 - Fixed a bug where local JNI references were not being deleted. The result was reuse by the runtime of reference values led to other arguments/return values being incorrectly named
 

@@ -8,7 +8,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='jnitrace',
-    version='3.0.7',
+    version='3.0.8',
     description='A tool for tracing use of the JNI in Android apps',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -33,7 +33,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     python_requires='>=3.0, <4',
     install_requires=[
-        'frida>=12.0.0',
+        'frida>=12.5.0',
         'colorama',
         'hexdump'
     ],
