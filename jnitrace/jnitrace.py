@@ -6,6 +6,7 @@ process.
 import argparse
 import binascii
 import json
+import re
 
 import frida
 import hexdump
@@ -28,6 +29,8 @@ PALETTE = [
     Fore.RED,
     Fore.BLUE
 ]
+
+AUX_OPTION_PATTERN = re.compile(r"(.+)=\((string|bool|int)\)(.+)") 
 
 class ColorManager:
     """
@@ -448,6 +451,23 @@ class TraceFormatter:
 def _custom_script_on_message(message, data):
     print(message, data)
 
+def _parse_aux_option(option):
+    m = AUX_OPTION_PATTERN.match(option)
+    if m is None:
+        raise ValueError("expected name=(type)value, e.g. “uid=(int)42”; supported types are: string, bool, int")
+
+    name = m.group(1)
+    type_decl = m.group(2)
+    raw_value = m.group(3)
+    if type_decl == 'string':
+        value = raw_value
+    elif type_decl == 'bool':
+        value = bool(raw_value)
+    else:
+        value = int(raw_value)
+
+    return (name, value)
+
 def _parse_args():
     parser = argparse.ArgumentParser(usage="jnitrace [options] -l libname target")
     parser.add_argument("-m", "--inject-method", choices=["spawn", "attach"],
@@ -485,6 +505,9 @@ def _parse_args():
                         "calls from. Enter * to track all libraries or"
                         " use the argument multiple times to specify "
                         "a set of libraries.")
+    parser.add_argument("--aux", action="append", metavar="name=(string|bool|int)value",
+                        dest="aux", default=[],
+                        help="set aux option when spawning")
     parser.add_argument("target",
                         help="The name of the application to trace.")
     args = parser.parse_args()
@@ -535,7 +558,10 @@ def main():
 
     device = frida.get_usb_device(3)
     if args.inject_method == "spawn":
-        pid = device.spawn([args.target])
+        aux_kwargs = {}
+        if args.aux is not None:
+            aux_kwargs = dict([_parse_aux_option(o) for o in args.aux])
+        pid = device.spawn([args.target], **aux_kwargs)
     else:
         pid = device.get_process(args.target).pid
 
