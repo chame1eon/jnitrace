@@ -457,7 +457,6 @@ def _parse_aux_option(option):
         error = "expected name=(type)value, e.g. “uid=(int)42”;"
         error += " supported types are: string, bool, int"
         raise ValueError(error)
-        
     name = aux_params.group(1)
     type_decl = aux_params.group(2)
     raw_value = aux_params.group(3)
