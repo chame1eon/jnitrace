@@ -454,9 +454,10 @@ def _custom_script_on_message(message, data):
 def _parse_aux_option(option):
     aux_params = AUX_OPTION_PATTERN.match(option)
     if aux_params is None:
-        raise ValueError("expected name=(type)value, e.g. “uid=(int)42”;"
-            + " supported types are: string, bool, int")
-
+        error = "expected name=(type)value, e.g. “uid=(int)42”;"
+        error += " supported types are: string, bool, int"
+        raise ValueError(error)
+        
     name = aux_params.group(1)
     type_decl = aux_params.group(2)
     raw_value = aux_params.group(3)
