@@ -30,7 +30,7 @@ PALETTE = [
     Fore.BLUE
 ]
 
-AUX_OPTION_PATTERN = re.compile(r"(.+)=\((string|bool|int)\)(.+)") 
+AUX_OPTION_PATTERN = re.compile(r"(.+)=\((string|bool|int)\)(.+)")
 
 class ColorManager:
     """
@@ -452,13 +452,14 @@ def _custom_script_on_message(message, data):
     print(message, data)
 
 def _parse_aux_option(option):
-    m = AUX_OPTION_PATTERN.match(option)
-    if m is None:
-        raise ValueError("expected name=(type)value, e.g. “uid=(int)42”; supported types are: string, bool, int")
+    aux_params = AUX_OPTION_PATTERN.match(option)
+    if aux_params is None:
+        raise ValueError("expected name=(type)value, e.g. “uid=(int)42”;"
+            + " supported types are: string, bool, int")
 
-    name = m.group(1)
-    type_decl = m.group(2)
-    raw_value = m.group(3)
+    name = aux_params.group(1)
+    type_decl = aux_params.group(2)
+    raw_value = aux_params.group(3)
     if type_decl == 'string':
         value = raw_value
     elif type_decl == 'bool':
