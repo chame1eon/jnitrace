@@ -54,6 +54,7 @@ with the name `nativeMethod`.
 * `--hide-data` - used to reduce the quantity of output displayed in the console. This option will hide additional data that is displayed as hexdumps or as string de-references.
 * `--ignore-env` - using this option will hide all calls the app is making using the JNIEnv struct.
 * `--ignore-vm` - using this option will hide all calls the app is making using the JavaVM struct.
+* `--aux <name=(string|bool|int)value>` - used to pass custom parameters when spawning an application. For example `--aux='uid=(int)10'` will spawn the application for user 10 instead of default user 0.
 
 ***Note***
 
