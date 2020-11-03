@@ -11,7 +11,7 @@
     "lint": "eslint jnitrace/src/**/*.ts"
   },
   "dependencies": {
-    "jnitrace-engine": "^1.0.8"
+    "jnitrace-engine": "^1.1.0"
   },
   "devDependencies": {
     "@types/frida-gum": "^16.2.0",
