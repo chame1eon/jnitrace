@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 3.1.0
+- Support for Frida 14 and QuickJS - Thanks oleavr
+- Fixed linting errors from new typescript version
+
 ## 3.0.8
 - Changed the required version of Frida in the setup.py file to be 12.5.0
 
