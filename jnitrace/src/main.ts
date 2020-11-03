@@ -18,6 +18,7 @@ JNILibraryWatcher.setCallback({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const op = recv("config", (message: any): void => {
                 const builder = new ConfigBuilder();
+                /* eslint-disable @typescript-eslint/no-unsafe-assignment */
                 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
                 builder.libraries = message.payload.libraries;
                 builder.backtrace = message.payload.backtrace;
@@ -31,6 +32,7 @@ JNILibraryWatcher.setCallback({
                 transport.setIncludeFilter(message.payload.include);
                 transport.setExcludeFilter(message.payload.exclude);
                 /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+                /* eslint-enable @typescript-eslint/no-unsafe-assignment */
             });
             op.wait();
         }

@@ -4,9 +4,13 @@ import { JavaMethod } from "jnitrace-engine";
 
 class MethodData {
     private readonly _method: JNIMethod;
+
     private readonly _jmethod: JavaMethod | undefined;
+
     private readonly _args: NativeArgumentValue[];
+
     private readonly _jparams: string[];
+
     private readonly _ret: NativeReturnValue;
 
     public constructor (

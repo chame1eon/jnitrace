@@ -4,7 +4,9 @@ const SEMI_COLON_OFFSET = 1;
 
 class JavaMethod {
     private readonly __: string;
+
     private readonly _params: string[];
+
     private readonly _ret: string;
 
     public constructor (signature: string) {

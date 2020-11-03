@@ -13,8 +13,11 @@ const JNI_ENV_INDEX = 0;
 
 class NativeMethodJSONContainer {
     public readonly name: { [id: string]: string | null } = {};
+
     public readonly sig: { [id: string]: string | null } = {};
+
     public readonly addr: { [id: string]: string | null } = {};
+
 
     public constructor (
         name: { [id: string]: string | null },
@@ -30,10 +33,14 @@ class NativeMethodJSONContainer {
 /* eslint-disable @typescript-eslint/camelcase */
 class DataJSONContainer {
     public readonly value: NativeArgumentValue | NativeReturnValue;
+
     public readonly data: ArrayBuffer | NativeArgumentValue | NativeReturnValue
     | string | NativeMethodJSONContainer[] | undefined;
+
     public readonly data_for: number | undefined;
+
     public readonly has_data: boolean | undefined;
+
     private metadata: string | undefined;
 
     public constructor (
@@ -71,7 +78,9 @@ class DataJSONContainer {
 
 class BacktraceJSONContainer {
     public readonly address: NativePointer;
+
     public readonly module: Module | null;
+
     public readonly symbol: DebugSymbol | null;
 
     public constructor (
@@ -87,14 +96,21 @@ class BacktraceJSONContainer {
 
 class RecordJSONContainer {
     public readonly type: string;
+
     public readonly call_type: string;
+
     public readonly method: JNIMethod;
+
     public readonly args: DataJSONContainer[];
+
     public readonly ret: DataJSONContainer;
+
     public readonly thread_id: number;
+
     public readonly timestamp: number;
 
     public readonly java_params: string[] | undefined;
+
     public readonly backtrace: BacktraceJSONContainer[] | undefined;
 
     public constructor (
@@ -122,11 +138,17 @@ class RecordJSONContainer {
 
 class DataTransport {
     private readonly start: number;
+
     private readonly byteArraySizes: Map<string, number>;
+
     private readonly jobjects: Map<string, string>;
+
     private readonly jfieldIDs: Map<string, string>;
+
     private readonly jmethodIDs: Map<string, string>;
+
     private include: string[];
+
     private exclude: string[];
 
     public constructor () {
