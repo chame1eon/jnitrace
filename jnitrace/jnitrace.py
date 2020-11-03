@@ -570,13 +570,13 @@ def main():
     scripts = {}
 
     if args.prepend:
-        prepend = session.create_script(args.prepend.read(), runtime="v8")
+        prepend = session.create_script(args.prepend.read())
         prepend.on("message", _custom_script_on_message)
         prepend.load()
         args.prepend.close()
         scripts["prepend"] = prepend
 
-    script = session.create_script(jscode, runtime="v8")
+    script = session.create_script(jscode)
     script.on("message", formatter.on_message)
     script.load()
     scripts["script"] = script
@@ -597,7 +597,7 @@ def main():
     })
 
     if args.append:
-        append = session.create_script(args.append.read(), runtime="v8")
+        append = session.create_script(args.append.read())
         append.on("message", _custom_script_on_message)
         append.load()
         args.append.close()
