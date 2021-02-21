@@ -520,6 +520,16 @@ def _parse_args():
 
     return args
 
+def _wait_for_finish():
+    print("{}Tracing. Press any key to quit...{}".format(
+        Fore.GREEN,
+        Style.RESET_ALL
+    ))
+    try:
+        input()
+    except KeyboardInterrupt:
+        pass
+
 def _finish(args, device, pid, scripts):
     print('Stopping application (name={}, pid={})...'.format(
         args.target,
@@ -560,10 +570,11 @@ def main():
     }, args.output is not None)
 
     if args.remote:
-        dm = frida.get_device_manager()
-        device = dm.add_remote_device(args.remote)
+        device_manager = frida.get_device_manager()
+        device = device_manager.add_remote_device(args.remote)
     else:
         device = frida.get_usb_device(3)
+
     if args.inject_method == "spawn":
         aux_kwargs = {}
         if args.aux is not None:
@@ -612,18 +623,11 @@ def main():
     if args.inject_method == "spawn":
         device.resume(pid)
 
-    print("{}Tracing. Press any key to quit...{}".format(
-        Fore.GREEN,
-        Style.RESET_ALL
-    ))
-    try:
-        input()
-    except KeyboardInterrupt:
-        pass
-
     if args.output:
         json.dump(formatter.get_output(), args.output, indent=4)
         args.output.close()
+
+    _wait_for_finish()
 
     _finish(args, device, pid, scripts)
 
