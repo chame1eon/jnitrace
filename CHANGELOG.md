@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.2.0
+- Added support for connecting to a remote Frida server
+
 ## 3.1.0
 - Support for Frida 14 and QuickJS - Thanks oleavr
 - Fixed linting errors from new typescript version

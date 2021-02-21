@@ -475,6 +475,8 @@ def _parse_args():
                         default="spawn",
                         help="Specify how frida should inject into the "
                         "process.")
+    parser.add_argument("-R", "--remote", nargs="?", const="127.0.0.1:27042",
+                        help="Connect to remote Frida server in the format IP:PORT")
     parser.add_argument("-b", "--backtrace", choices=["fuzzy", "accurate", "none"],
                         default="accurate",
                         help="Print a backtrace from each JNI call.")
@@ -557,7 +559,11 @@ def main():
         "show_data": not args.hide_data
     }, args.output is not None)
 
-    device = frida.get_usb_device(3)
+    if args.remote:
+        dm = frida.get_device_manager()
+        device = dm.add_remote_device(args.remote)
+    else:
+        device = frida.get_usb_device(3)
     if args.inject_method == "spawn":
         aux_kwargs = {}
         if args.aux is not None:

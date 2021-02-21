@@ -33,6 +33,7 @@ After a pip install it is easy to run `jnitrace`:
 * `com.example.myapplication` - is the Android package to trace. This package must already be installed on the device.
 
 Optional arguments are listed below:
+* `-R <host>:<port>` - is used to specify the network location of the remote Frida server. If a <host>:<port> is unspecified, localhost:27042 is used by deafult.
 * `-m <spawn|attach>` - is used to specify the Frida attach mechanism to use. It can either be spawn or attach. Spawn is the default and recommended option.
 * `-b <fuzzy|accurate|none>` - is used to control backtrace output. By default `jnitrace` will run the
 backtracer in `accurate` mode. This option can be changed to `fuzzy` mode or used to stop the backtrace
