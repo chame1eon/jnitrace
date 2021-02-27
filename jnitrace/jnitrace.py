@@ -623,11 +623,11 @@ def main():
     if args.inject_method == "spawn":
         device.resume(pid)
 
+    _wait_for_finish()
+
     if args.output:
         json.dump(formatter.get_output(), args.output, indent=4)
         args.output.close()
-
-    _wait_for_finish()
 
     _finish(args, device, pid, scripts)
 

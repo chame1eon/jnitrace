@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.2.1
+- Fixed bug where output was being written before the tracing was complete
+
 ## 3.2.0
 - Added support for connecting to a remote Frida server
 
