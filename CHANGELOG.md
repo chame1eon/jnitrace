@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.2.2
+- Switched off the "in repl" flag to make sure the command args were processed
+
 ## 3.2.1
 - Fixed bug where output was being written before the tracing was complete
 

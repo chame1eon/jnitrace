@@ -7,7 +7,7 @@ import { ConfigBuilder } from "jnitrace-engine";
 import { MethodData } from "./utils/method_data";
 import { DataTransport } from "./transport/data_transport";
 
-const IS_IN_REPL = true;
+const IS_IN_REPL = false;
 const transport = new DataTransport();
 let config: Config | null = null;
 
