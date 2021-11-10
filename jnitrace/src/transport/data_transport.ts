@@ -147,6 +147,8 @@ class DataTransport {
 
     private readonly jmethodIDs: Map<string, string>;
 
+    private readonly jstrings: Map<string, string>;
+
     private include: string[];
 
     private exclude: string[];
@@ -157,6 +159,7 @@ class DataTransport {
         this.jobjects = new Map<string, string>();
         this.jfieldIDs = new Map<string, string>();
         this.jmethodIDs = new Map<string, string>();
+        this.jstrings = new Map<string, string>();
         this.include = [];
         this.exclude = [];
     }
@@ -336,6 +339,13 @@ class DataTransport {
         }
     }
 
+    private updateStringIDs (data: MethodData): void {
+        const UTF8_INDEX = 1;
+        this.jstrings.set(data.ret.toString(),
+            data.getArgAsPtr(UTF8_INDEX).readUtf8String()!
+        );
+    }
+
     private updateState (data: MethodData): void {
         const name = data.method.name;
 
@@ -357,6 +367,8 @@ class DataTransport {
             this.updateObjectIDsFromClass(data);
         } else if (name.startsWith("Call")) {
             this.updateObjectIDsFromCall(data);
+        } else if (name === "NewStringUTF") {
+            this.updateStringIDs(data);
         }
     }
 
@@ -399,6 +411,10 @@ class DataTransport {
         } else if (type === "jfieldID") {
             if (this.jfieldIDs.has(key)) {
                 item.setMetadata(this.jfieldIDs.get(key));
+            }
+        } else if (type === "jstring") {
+            if (this.jstrings.has(key)) {
+                item.setMetadata(this.jstrings.get(key));
             }
         }
     }

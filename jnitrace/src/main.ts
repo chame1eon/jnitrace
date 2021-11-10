@@ -316,5 +316,3 @@ JNIInterceptor.attach("NewDirectByteBuffer", jniEnvCallback);
 JNIInterceptor.attach("GetDirectBufferAddress", jniEnvCallback);
 JNIInterceptor.attach("GetDirectBufferCapacity", jniEnvCallback);
 JNIInterceptor.attach("GetObjectRefType", jniEnvCallback);
-
-
