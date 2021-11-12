@@ -15,7 +15,7 @@ from pkg_resources import resource_string
 from pkg_resources import require
 
 from colorama import Fore, Style, init
-
+#pylint: disable=consider-using-f-string
 
 __version__ = require("jnitrace")[0].version
 
