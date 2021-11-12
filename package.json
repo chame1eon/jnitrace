@@ -1,6 +1,6 @@
 {
   "name": "jnitrace",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "A tool for tracing use of the JNI in Android apps",
   "private": true,
   "main": "jnitrace/src/main.js",

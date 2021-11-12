@@ -341,9 +341,12 @@ class DataTransport {
 
     private updateStringIDs (data: MethodData): void {
         const UTF8_INDEX = 1;
-        this.jstrings.set(data.ret.toString(),
-            data.getArgAsPtr(UTF8_INDEX).readUtf8String()!
-        );
+
+        const utf8Ptr = data.getArgAsPtr(UTF8_INDEX).readUtf8String();
+
+        if (utf8Ptr !== null) {
+            this.jstrings.set(data.ret.toString(), utf8Ptr);
+        }
     }
 
     private updateState (data: MethodData): void {

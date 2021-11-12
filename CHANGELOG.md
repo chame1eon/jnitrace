@@ -1,5 +1,8 @@
 # jnitrace Change Log
 
+## 3.3.0
+- Support for displaying the UTF-8 value of a jstring during the trace (Thanks to NicolaiSoeborg for the contribution)
+
 ## 3.2.2
 - Switched off the "in repl" flag to make sure the command args were processed
 
