@@ -1,7 +1,7 @@
 language: python
 
 python:
-  - 3.7
+  - 3.7.2
 
 install:
   - pip install -r requirements.txt
