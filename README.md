@@ -19,7 +19,7 @@ The easiest way to get running with `jnitrace` is to install using pip:
 ###### Dependencies:
 * arm, arm64, x86, or x64 Android device
 * Frida installed on the Android device
-* Frida support > 12
+* Frida support > 14
 * Linux, Mac, or Windows Host with Python 3 and pip
 
 ## Running:

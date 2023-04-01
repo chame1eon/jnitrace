@@ -1,5 +1,9 @@
 # jnitrace Change Log
 
+## 3.3.1
+- Bumped dependencies that had been detected to have security vulnerabilities
+- Checked and verified compatibility with Frida 16
+
 ## 3.3.0
 - Support for displaying the UTF-8 value of a jstring during the trace (Thanks to NicolaiSoeborg for the contribution)
 

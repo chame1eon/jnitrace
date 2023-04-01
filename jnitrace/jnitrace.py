@@ -15,7 +15,6 @@ from pkg_resources import resource_string
 from pkg_resources import require
 
 from colorama import Fore, Style, init
-#pylint: disable=consider-using-f-string
 
 __version__ = require("jnitrace")[0].version
 
@@ -578,6 +577,7 @@ def main():
     if args.inject_method == "spawn":
         aux_kwargs = {}
         if args.aux is not None:
+            # pylint: disable=R1717
             aux_kwargs = dict([_parse_aux_option(o) for o in args.aux])
         pid = device.spawn([args.target], **aux_kwargs)
     else:
