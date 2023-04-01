@@ -11,11 +11,13 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.7.16'
+
       - run: pip install -r requirements.txt
       - run: pip install .
       - run: pylint jnitrace/jnitrace.py
-      - run: npm run lint
       - run: npm install
+      - run: npm run lint
+      
       - run: touch jnitrace/build/__init__.py
       - run: python setup.py sdist
       - uses: pypa/gh-action-pypi-publish@release/v1
