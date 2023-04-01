@@ -4,7 +4,7 @@ on:
     tags:
     - '*'
 jobs:
-  lint:
+  deploy:
     runs-on: ['ubuntu-22.04']
     steps:
       - uses: actions/checkout@v3
@@ -16,6 +16,7 @@ jobs:
           python-version: '3.7.16'
       - run: npm install
       - run: touch jnitrace/build/__init__.py
+      - run: python setup.py sdist
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
