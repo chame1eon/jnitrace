@@ -1,10 +1,7 @@
-name: deploy
-on:
-  push:
-    tags:
-    - '*'
+name: lint-and-deploy
+on: ['push']
 jobs:
-  deploy:
+  lint-and-deploy:
     runs-on: ['ubuntu-22.04']
     steps:
       - uses: actions/checkout@v3
@@ -14,9 +11,16 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.7.16'
+
+      - run: pip install -r requirements.txt
+      - run: pip install .
+      - run: pylint jnitrace/jnitrace.py
       - run: npm install
+      - run: npm run lint
+      
       - run: touch jnitrace/build/__init__.py
       - run: python setup.py sdist
       - uses: pypa/gh-action-pypi-publish@release/v1
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
