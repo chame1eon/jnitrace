@@ -16,6 +16,8 @@ from pkg_resources import require
 
 from colorama import Fore, Style, init
 
+# pylint: disable=C0209
+
 __version__ = require("jnitrace")[0].version
 
 init()
@@ -230,11 +232,11 @@ class TraceFormatter:
             else:
                 padding = 4
                 arg_offset = 0
-            for i, _ in enumerate(java_params):
+            for i, java_param in enumerate(java_params):
                 arg = args[i + len(jni_args) - arg_offset]
                 self._print_arg_sub_data(
                     arg["value"],
-                    arg_type=java_params[i],
+                    arg_type=java_param,
                     opt=arg.get("metadata"),
                     padding=padding
                 )
