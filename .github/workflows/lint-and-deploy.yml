@@ -12,6 +12,7 @@ jobs:
         with:
           python-version: '3.7.16'
   lint:
+    needs: ['checkout']
     runs-on: ['ubuntu-22.04']
     steps:
       - run: pip install -r requirements.txt
@@ -19,12 +20,13 @@ jobs:
       - run: pylint jnitrace/jnitrace.py
       - run: npm run lint
   deploy:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: ['checkout', 'lint']
     runs-on: ['ubuntu-22.04']
     steps:
       - run: npm install
       - run: touch jnitrace/build/__init__.py
       - run: python setup.py sdist
       - uses: pypa/gh-action-pypi-publish@release/v1
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
