@@ -10,7 +10,7 @@ jobs:
           node-version: 16
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.7.2'
+          python-version: '3.7.16'
       - run: pip install -r requirements.txt
       - run: pip install .
       - run: npm install
