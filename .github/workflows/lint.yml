@@ -1,4 +1,5 @@
 name: lint-check
+on: ['push']
 jobs:
   lint:
     steps:
